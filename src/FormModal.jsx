@@ -6,7 +6,9 @@ export default function FormModal({ onClose, initialData }) {
   const [listaClientes, setListaClientes] = useState([])
   const [listaEquipamentos, setListaEquipamentos] = useState([])
   const [buscaCli, setBuscaCli] = useState(initialData?.cliente || '')
+  const [buscaEq, setBuscaEq] = useState(initialData?.modelo || '')
   const [showCli, setShowCli] = useState(false)
+  const [showEq, setShowEq] = useState(false)
 
   const [formData, setFormData] = useState({
     Cliente: initialData?.cliente || '',
@@ -19,153 +21,168 @@ export default function FormModal({ onClose, initialData }) {
     Modelo: initialData?.modelo || '',
     'Niname/NCM': '',
     Configuracao: '',
-    Descricao: initialData?.modelo || '',
+    Descricao: '',
     Ano: '',
     Prazo_Entrega: '',
     Valor_Total: '',
     Valor_A_Vista: '',
-    Condicoes: initialData?.forma_pagamento || '',
+    Condicoes: '',
     Imagem_Equipamento: '',
-    id_fabrica_ref: initialData?.id || '',
-    status: 'Enviar Proposta'
+    status: 'Enviar Proposta',
+    id_fabrica_ref: initialData?.id || ''
   })
 
   useEffect(() => {
-    const fetchData = async () => {
-      const { data: clis } = await supabase.from('Clientes').select('*')
-      const { data: equis } = await supabase.from('Equipamentos').select('*')
-      if (clis) setListaClientes(clis)
-      if (equis) setListaEquipamentos(equis)
-
-      // Se veio da fábrica, tenta preencher os dados do cliente e máquina automaticamente
-      if (initialData) {
-        const cli = clis?.find(c => c.nome === initialData.cliente)
-        if (cli) {
-          setFormData(prev => ({
-            ...prev,
-            'Cpf/Cpnj': cli.cppf_cnpj,
-            Cidade: cli.cidade,
-            Bairro: cli.bairro,
-            End_Entrega: cli.endereco
-          }))
-        }
-        const eqp = equis?.find(e => e.modelo === initialData.modelo)
-        if (eqp) {
-          setFormData(prev => ({
-            ...prev,
-            'Niname/NCM': eqp.finame,
-            Configuracao: eqp.configuracao,
-            Imagem_Equipamento: eqp.imagem,
-            Ano: eqp.ano,
-            Descricao: eqp.descricao
-          }))
-        }
-      }
+    async function carregarDados() {
+      const { data: c } = await supabase.from('Clientes').select('*')
+      const { data: e } = await supabase.from('Equipamentos').select('*')
+      if (c) setListaClientes(c)
+      if (e) setListaEquipamentos(e)
     }
-    fetchData()
-  }, [initialData])
+    carregarDados()
+  }, [])
 
-  const selecionarCliente = (c) => {
-    setFormData({
-      ...formData,
+  // AUTO-PREENCHIMENTO DO CLIENTE
+  const handleSelecionarCliente = (c) => {
+    setFormData(prev => ({
+      ...prev,
       Cliente: c.nome,
       'Cpf/Cpnj': c.cppf_cnpj,
       Cidade: c.cidade,
       Bairro: c.bairro,
       End_Entrega: c.endereco
-    })
-    setBuscaCli(c.nome); setShowCli(false);
+    }))
+    setBuscaCli(c.nome)
+    setShowCli(false)
   }
 
-  const handleSave = async (e) => {
-    e.preventDefault(); setLoading(true)
+  // AUTO-PREENCHIMENTO DO EQUIPAMENTO
+  const handleSelecionarEquipamento = (e) => {
+    setFormData(prev => ({
+      ...prev,
+      Marca: e.marca,
+      Modelo: e.modelo,
+      Ano: e.ano,
+      Descricao: e.descricao,
+      Configuracao: e.configuracao,
+      'Niname/NCM': e.finame,
+      Imagem_Equipamento: e.imagem,
+      Qtd_Eqp: '1' // Mínimo de 1 como solicitado
+    }))
+    setBuscaEq(`${e.marca} ${e.modelo}`)
+    setShowEq(false)
+  }
+
+  const handleSalvar = async (e) => {
+    e.preventDefault()
+    setLoading(true)
     const { error } = await supabase.from('Formulario').insert([formData])
-    if (error) alert("Erro ao salvar proposta: " + error.message)
-    else { alert("PROPOSTA COMERCIAL CRIADA!"); window.location.reload(); }
+    if (!error) {
+      alert("PROPOSTA GERADA COM SUCESSO!")
+      window.location.reload()
+    } else {
+      alert("Erro ao salvar: " + error.message)
+    }
     setLoading(false)
   }
 
   return (
-    <div style={s.overlay}>
-      <div style={s.modal}>
-        <div style={s.header}>
-          <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-            <div style={{width: '4px', height: '18px', backgroundColor: '#FF0000'}}></div>
-            <h2 style={{fontSize: '14px', fontWeight: '900', margin: 0}}>NOVA PROPOSTA COMERCIAL</h2>
-          </div>
-          <button onClick={onClose} style={s.closeBtn}>FECHAR</button>
+    <div style={f.overlay}>
+      <div style={f.modal}>
+        <div style={f.header}>
+          <h2 style={{ fontWeight: '900', margin: 0 }}>NOVA PROPOSTA COMERCIAL</h2>
+          <button onClick={onClose} style={f.closeBtn}>X</button>
         </div>
 
-        <div style={s.scroll}>
-          <form onSubmit={handleSave} style={s.vList}>
+        <div style={f.scroll}>
+          <form onSubmit={handleSalvar} style={f.vList}>
             
-            {/* BUSCA DE CLIENTE */}
-            <section style={s.card}>
-              <span style={s.tag}>IDENTIFICAÇÃO DO CLIENTE</span>
-              <div style={{position: 'relative', marginBottom: '10px'}}>
-                <input 
-                  placeholder="PESQUISAR CLIENTE CADASTRADO..." 
-                  style={s.searchInput} 
-                  value={buscaCli} 
-                  onChange={e => {setBuscaCli(e.target.value); setShowCli(true)}} 
-                />
+            {/* BUSCAS */}
+            <div style={{ display: 'flex', gap: '20px' }}>
+              <div style={{ flex: 1, position: 'relative' }}>
+                <label style={f.labelBusca}>1. SELECIONAR CLIENTE</label>
+                <input style={f.search} value={buscaCli} onChange={e => {setBuscaCli(e.target.value); setShowCli(true)}} placeholder="Pesquisar cliente..." />
                 {showCli && buscaCli && (
-                  <div style={s.dropdown}>
-                    {listaClientes.filter(c => c.nome.toLowerCase().includes(buscaCli.toLowerCase())).map(c => (
-                      <div key={c.id} style={s.option} onClick={() => selecionarCliente(c)}>{c.nome}</div>
+                  <div style={f.dropdown}>
+                    {listaClientes.filter(c => c.nome?.toLowerCase().includes(buscaCli.toLowerCase())).map(c => (
+                      <div key={c.id} style={f.option} onClick={() => handleSelecionarCliente(c)}>{c.nome}</div>
                     ))}
                   </div>
                 )}
               </div>
-              <div style={s.grid}>
-                <div style={{flex: 2}}><label style={s.label}>NOME / RAZÃO SOCIAL</label>
-                <input value={formData.Cliente} readOnly style={s.input} /></div>
-                <div style={{flex: 1}}><label style={s.label}>CPF / CNPJ</label>
-                <input value={formData['Cpf/Cpnj']} readOnly style={s.input} /></div>
-              </div>
-              <div style={{...s.grid, marginTop: '10px'}}>
-                <input placeholder="CIDADE" value={formData.Cidade} readOnly style={s.input} />
-                <input placeholder="BAIRRO" value={formData.Bairro} readOnly style={s.input} />
-              </div>
-            </section>
 
-            {/* DADOS DA MÁQUINA */}
-            <section style={s.card}>
-              <span style={s.tag}>ESPECIFICAÇÕES DO EQUIPAMENTO</span>
-              <div style={s.grid}>
-                <div style={{flex: 2}}><label style={s.label}>DESCRIÇÃO</label>
-                <input value={formData.Descricao} onChange={e => setFormData({...formData, Descricao: e.target.value})} style={s.input} /></div>
-                <div style={{flex: 1}}><label style={s.label}>ANO</label>
-                <input value={formData.Ano} onChange={e => setFormData({...formData, Ano: e.target.value})} style={s.input} /></div>
+              <div style={{ flex: 1, position: 'relative' }}>
+                <label style={f.labelBusca}>2. SELECIONAR EQUIPAMENTO</label>
+                <input style={f.search} value={buscaEq} onChange={e => {setBuscaEq(e.target.value); setShowEq(true)}} placeholder="Marca ou Modelo..." />
+                {showEq && buscaEq && (
+                  <div style={f.dropdown}>
+                    {listaEquipamentos.filter(e => e.modelo?.toLowerCase().includes(buscaEq.toLowerCase())).map(e => (
+                      <div key={e.id} style={f.option} onClick={() => handleSelecionarEquipamento(e)}>{e.marca} {e.modelo}</div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div style={{...s.grid, marginTop: '10px'}}>
-                <input placeholder="MARCA" value={formData.Marca} readOnly style={s.input} />
-                <input placeholder="MODELO" value={formData.Modelo} readOnly style={s.input} />
-                <input placeholder="QUANTIDADE" type="number" value={formData.Qtd_Eqp} onChange={e => setFormData({...formData, Qtd_Eqp: e.target.value})} style={s.input} />
-              </div>
-              <textarea placeholder="CONFIGURAÇÃO TÉCNICA" value={formData.Configuracao} onChange={e => setFormData({...formData, Configuracao: e.target.value})} style={{...s.input, marginTop: '10px', height: '60px'}} />
-            </section>
+            </div>
 
-            {/* FINANCEIRO */}
-            <section style={s.card}>
-              <span style={s.tag}>CONDIÇÕES COMERCIAIS</span>
-              <div style={s.grid}>
-                <div style={s.field}><label style={s.label}>VALOR TOTAL (R$)</label>
-                <input type="number" required onChange={e => setFormData({...formData, Valor_Total: e.target.value})} style={s.input} /></div>
-                <div style={s.field}><label style={s.label}>VALOR À VISTA (R$)</label>
-                <input type="number" onChange={e => setFormData({...formData, Valor_A_Vista: e.target.value})} style={s.input} /></div>
-                <div style={s.field}><label style={s.label}>PRAZO (DIAS)</label>
-                <input type="number" onChange={e => setFormData({...formData, Prazo_Entrega: e.target.value})} style={s.input} /></div>
+            {/* PREVIEW DA FOTO */}
+            {formData.Imagem_Equipamento && (
+              <center>
+                <div style={f.imgBox}>
+                  <label style={f.label}>FOTO DO EQUIPAMENTO</label><br/>
+                  <img src={formData.Imagem_Equipamento} style={f.preview} alt="Equipamento" />
+                </div>
+              </center>
+            )}
+
+            {/* GRADE I: DADOS DO CLIENTE */}
+            <div style={f.sectionTitle}>I. DADOS DO CLIENTE</div>
+            <div style={f.grid}>
+              <div style={f.row}>
+                <div style={f.cell}><label style={f.label}>CLIENTE</label><input value={formData.Cliente} readOnly style={f.input} /></div>
+                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>CPF / CNPJ</label><input value={formData['Cpf/Cpnj']} readOnly style={f.input} /></div>
               </div>
-              <input placeholder="CONDIÇÕES DE PAGAMENTO / FINANCIAMENTO" value={formData.Condicoes} onChange={e => setFormData({...formData, Condicoes: e.target.value})} style={{...s.input, marginTop: '10px'}} />
-            </section>
+              <div style={{...f.row, borderBottom: 'none'}}>
+                <div style={f.cell}><label style={f.label}>CIDADE</label><input value={formData.Cidade} readOnly style={f.input} /></div>
+                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>ENDEREÇO ENTREGA</label><input value={formData.End_Entrega} readOnly style={f.input} /></div>
+              </div>
+            </div>
+
+            {/* GRADE II: DADOS DO ITEM */}
+            <div style={f.sectionTitle}>II. DADOS DO EQUIPAMENTO</div>
+            <div style={f.grid}>
+              <div style={f.row}>
+                <div style={s.cell}><label style={f.label}>MARCA</label><input value={formData.Marca} readOnly style={f.input} /></div>
+                <div style={s.cell}><label style={f.label}>MODELO</label><input value={formData.Modelo} readOnly style={f.input} /></div>
+                <div style={{...s.cell, borderRight: 'none'}}><label style={f.label}>ANO</label><input value={formData.Ano} readOnly style={f.input} /></div>
+              </div>
+              <div style={f.row}>
+                <div style={s.cell}><label style={f.label}>FINAME / NCM</label><input value={formData['Niname/NCM']} readOnly style={f.input} /></div>
+                <div style={{...s.cell, borderRight: 'none'}}><label style={f.label}>QUANTIDADE</label><input type="number" value={formData.Qtd_Eqp} onChange={e => setFormData({...formData, Qtd_Eqp: e.target.value})} style={f.input} /></div>
+              </div>
+              <div style={{...f.row, borderBottom: 'none'}}>
+                <div style={{...s.cell, borderRight: 'none'}}><label style={f.label}>DESCRIÇÃO</label><input value={formData.Descricao} readOnly style={f.input} /></div>
+              </div>
+            </div>
+
+            {/* GRADE III: FINANCEIRO (MANUAL) */}
+            <div style={f.sectionTitle}>III. CONDIÇÕES FINANCEIRAS</div>
+            <div style={f.grid}>
+              <div style={f.row}>
+                <div style={s.cell}><label style={f.label}>VALOR TOTAL (R$)</label><input type="number" required placeholder="0.00" onChange={e => setFormData({...formData, Valor_Total: e.target.value})} style={{...f.input, color: 'red'}} /></div>
+                <div style={{...s.cell, borderRight: 'none'}}><label style={f.label}>VALOR À VISTA (R$)</label><input type="number" placeholder="0.00" onChange={e => setFormData({...formData, Valor_A_Vista: e.target.value})} style={{...f.input, color: 'green'}} /></div>
+              </div>
+              <div style={{...f.row, borderBottom: 'none'}}>
+                <div style={s.cell}><label style={f.label}>PRAZO ENTREGA (DIAS)</label><input type="number" placeholder="Ex: 30" onChange={e => setFormData({...formData, Prazo_Entrega: e.target.value})} style={f.input} /></div>
+                <div style={{...s.cell, borderRight: 'none'}}><label style={f.label}>CONDIÇÕES DE PAGAMENTO</label><input placeholder="Ex: Financiamento / Banco" onChange={e => setFormData({...formData, Condicoes: e.target.value})} style={f.input} /></div>
+              </div>
+            </div>
 
           </form>
         </div>
 
-        <div style={s.footer}>
-          <button onClick={handleSave} disabled={loading} style={s.saveBtn}>
-            {loading ? 'PROCESSANDO...' : 'CONFIRMAR E GERAR PROPOSTA FINAL'}
+        <div style={f.footer}>
+          <button onClick={handleSalvar} disabled={loading} style={f.btnMain}>
+            {loading ? 'GERANDO...' : 'CONFIRMAR E GERAR PROPOSTA'}
           </button>
         </div>
       </div>
@@ -173,22 +190,27 @@ export default function FormModal({ onClose, initialData }) {
   )
 }
 
-const s = {
-  overlay: { position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1300 },
-  modal: { backgroundColor: '#F0F2F5', width: '95%', maxWidth: '650px', maxHeight: '92vh', display: 'flex', flexDirection: 'column', borderRadius: '12px' },
-  header: { padding: '15px 25px', backgroundColor: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #E5E7EB' },
-  closeBtn: { border: 'none', background: 'none', color: '#9CA3AF', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' },
-  scroll: { padding: '20px', overflowY: 'auto', flex: 1 },
-  vList: { display: 'flex', flexDirection: 'column', gap: '15px' },
-  card: { backgroundColor: '#fff', padding: '15px', borderRadius: '10px', border: '1px solid #E5E7EB' },
-  tag: { fontSize: '9px', fontWeight: '900', color: '#FF0000', letterSpacing: '1px', marginBottom: '12px', display: 'block' },
-  grid: { display: 'flex', gap: '10px' },
-  field: { flex: 1, display: 'flex', flexDirection: 'column', gap: '5px' },
-  label: { fontSize: '10px', fontWeight: 'bold', color: '#9CA3AF', textTransform: 'uppercase' },
-  input: { padding: '10px', border: '1px solid #E5E7EB', borderRadius: '6px', fontSize: '14px', width: '100%', boxSizing: 'border-box' },
-  searchInput: { padding: '12px', backgroundColor: '#111827', color: '#fff', border: 'none', width: '100%', borderRadius: '8px' },
-  dropdown: { backgroundColor: '#fff', border: '1px solid #ddd', maxHeight: '150px', overflowY: 'auto', position: 'absolute', width: '100%', zIndex: 10, borderRadius: '8px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' },
-  option: { padding: '10px', cursor: 'pointer', borderBottom: '1px solid #eee', fontSize: '13px' },
-  footer: { padding: '15px 25px', backgroundColor: '#fff', borderTop: '1px solid #eee' },
-  saveBtn: { width: '100%', padding: '14px', backgroundColor: '#FF0000', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }
+const f = {
+  overlay: { position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 3000 },
+  modal: { backgroundColor: '#F5F5DC', width: '95%', maxWidth: '1100px', height: '90vh', borderRadius: '12px', display: 'flex', flexDirection: 'column', border: '3px solid #000', overflow: 'hidden' },
+  header: { padding: '15px 30px', backgroundColor: '#fff', borderBottom: '3px solid #000', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  scroll: { padding: '20px 30px', overflowY: 'auto', flex: 1 },
+  vList: { display: 'flex', flexDirection: 'column', gap: '20px' },
+  labelBusca: { fontSize: '11px', fontWeight: '900', color: '#000', marginBottom: '5px', display: 'block' },
+  search: { width: '100%', padding: '12px', backgroundColor: '#000', color: '#fff', borderRadius: '8px', border: 'none' },
+  dropdown: { position: 'absolute', top: '65px', left: 0, right: 0, backgroundColor: '#fff', border: '2px solid #000', zIndex: 10, maxHeight: '150px', overflowY: 'auto' },
+  option: { padding: '10px', cursor: 'pointer', borderBottom: '1px solid #eee', color: '#000', fontWeight: '700' },
+  imgBox: { backgroundColor: '#fff', padding: '10px', border: '2px solid #000', borderRadius: '10px', display: 'inline-block' },
+  preview: { height: '140px', borderRadius: '5px', border: '1px solid #000' },
+  sectionTitle: { fontSize: '13px', fontWeight: '900', color: '#EF4444', letterSpacing: '1px' },
+  grid: { border: '2px solid #000', backgroundColor: '#fff', borderRadius: '8px', overflow: 'hidden' },
+  row: { display: 'flex', borderBottom: '1px solid #000' },
+  cell: { flex: 1, padding: '10px', borderRight: '1px solid #000', display: 'flex', flexDirection: 'column' },
+  label: { fontSize: '9px', fontWeight: '900', color: '#64748B', marginBottom: '3px' },
+  input: { border: 'none', outline: 'none', width: '100%', fontSize: '14px', fontWeight: '700', background: 'none' },
+  footer: { padding: '15px 30px', backgroundColor: '#fff', borderTop: '3px solid #000' },
+  btnMain: { width: '100%', padding: '15px', backgroundColor: '#EF4444', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '900', cursor: 'pointer', fontSize: '16px' },
+  closeBtn: { border: 'none', background: 'none', fontWeight: '900', cursor: 'pointer' }
 }
+
+const s = f // Alias para manter compatibilidade com as células
