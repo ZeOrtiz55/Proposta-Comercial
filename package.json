@@ -7,7 +7,7 @@
   "dev": "vite",
   "build": "vite build",
   "preview": "vite preview",
-  "start": "npx sirv-cli dist --port $PORT --host 0.0.0.0 --single"
+  "start": "npx sirv-cli dist --port $PORT --host --single"
 },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
