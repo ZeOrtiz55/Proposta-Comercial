@@ -5,10 +5,12 @@ import FormModal from './FormModal'
 import EditModal from './EditModal'
 import FactoryFormModal from './FactoryFormModal'
 import FactoryEditModal from './FactoryEditModal'
+import ClientModal from './ClientModal'
+import EquipamentoModal from './EquipamentoModal'
 
 export default function App() {
   const [view, setView] = useState('fabrica')
-  const [modals, setModals] = useState({ newFab: false, editFab: false, newCli: false, editCli: false })
+  const [modals, setModals] = useState({ newFab: false, editFab: false, newCli: false, editCli: false, client: false, equip: false })
   const [selected, setSelected] = useState(null)
 
   const convertToCli = (data) => { setSelected(data); setModals({ ...modals, editFab: false, newCli: true }); }
@@ -20,53 +22,72 @@ export default function App() {
           <div style={ui.logoMark}></div>
           <div>
             <h1 style={ui.brandName}>NOVA TRATORES</h1>
-            <span style={ui.brandStatus}>COMMAND CENTER • EXECUTIVO</span>
+            <span style={ui.brandStatus}>COMMAND CENTER</span>
           </div>
         </div>
 
-        <nav style={ui.nav}>
+        {/* NAVEGAÇÃO INTERATIVA BEGE/VERMELHO */}
+        <div style={ui.navContainer}>
+          <div style={{...ui.navSlider, left: view === 'fabrica' ? '4px' : '50%'}}></div>
           <button onClick={() => setView('fabrica')} style={view === 'fabrica' ? ui.navBtnActive : ui.navBtn}>FÁBRICA</button>
           <button onClick={() => setView('clientes')} style={view === 'clientes' ? ui.navBtnActive : ui.navBtn}>CLIENTES</button>
-        </nav>
+        </div>
 
-        <button 
-          onClick={() => view === 'fabrica' ? setModals({...modals, newFab: true}) : setModals({...modals, newCli: true})} 
-          style={ui.btnMain}
-        >
-          {view === 'fabrica' ? '+ NOVO PEDIDO FÁBRICA' : '+ NOVA PROPOSTA COMERCIAL'}
-        </button>
+        <div style={ui.actions}>
+          <button onClick={() => setModals({...modals, client: true})} style={ui.btnSec}>+ CLIENTE</button>
+          <button onClick={() => setModals({...modals, equip: true})} style={ui.btnSec}>+ MÁQUINA</button>
+          <button 
+            onClick={() => view === 'fabrica' ? setModals({...modals, newFab: true}) : setModals({...modals, newCli: true})} 
+            style={ui.btnMain}
+          >
+            {view === 'fabrica' ? 'NOVO PEDIDO' : 'NOVA PROPOSTA'}
+          </button>
+        </div>
       </header>
 
       <main style={ui.content}>
-        {view === 'fabrica' ? (
-          <FactoryKanban onCardClick={(p) => { setSelected(p); setModals({...modals, editFab: true}); }} />
-        ) : (
-          <Kanban onCardClick={(p) => { setSelected(p); setModals({...modals, editCli: true}); }} />
-        )}
+        <div key={view} className="view-transition">
+          {view === 'fabrica' ? (
+            <FactoryKanban onCardClick={(p) => { setSelected(p); setModals({...modals, editFab: true}); }} />
+          ) : (
+            <Kanban onCardClick={(p) => { setSelected(p); setModals({...modals, editCli: true}); }} />
+          )}
+        </div>
       </main>
 
+      {/* MODAIS */}
       {modals.newFab && <FactoryFormModal onClose={() => setModals({...modals, newFab: false})} />}
       {modals.editFab && <FactoryEditModal order={selected} onClose={() => setModals({...modals, editFab: false})} onConvert={convertToCli} />}
       {modals.newCli && <FormModal initialData={selected} onClose={() => setModals({...modals, newCli: false})} />}
       {modals.editCli && <EditModal proposal={selected} onClose={() => setModals({...modals, editCli: false})} />}
+      {modals.client && <ClientModal onClose={() => setModals({...modals, client: false})} />}
+      {modals.equip && <EquipamentoModal onClose={() => setModals({...modals, equip: false})} />}
     </div>
   )
 }
 
 const ui = {
-  body: { minHeight: '100vh', width: '100%', backgroundColor: '#0F172A', backgroundImage: 'radial-gradient(circle at 0% 0%, #1E293B 0%, #0F172A 100%)' },
+  body: { minHeight: '100vh', width: '100%' },
   header: { 
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 40px', 
-    backgroundColor: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(15px)', borderBottom: '1px solid rgba(255,255,255,0.08)',
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 40px',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(20px)', borderBottom: '1px solid #E2E8F0',
     position: 'sticky', top: 0, zIndex: 1000, width: '100%'
   },
   brand: { display: 'flex', alignItems: 'center', gap: '15px' },
-  logoMark: { width: '4px', height: '35px', backgroundColor: '#EF4444', borderRadius: '4px', boxShadow: '0 0 20px rgba(239, 68, 68, 0.5)' },
-  brandName: { fontSize: '20px', fontWeight: '900', color: '#fff', margin: 0, letterSpacing: '-1px' },
-  brandStatus: { fontSize: '9px', color: '#64748B', fontWeight: 'bold', textTransform: 'uppercase' },
-  nav: { display: 'flex', gap: '5px', backgroundColor: 'rgba(0,0,0,0.3)', padding: '5px', borderRadius: '12px' },
-  navBtn: { padding: '10px 25px', border: 'none', background: 'none', color: '#64748B', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' },
-  navBtnActive: { padding: '10px 25px', border: 'none', backgroundColor: '#EF4444', color: '#fff', borderRadius: '8px', fontWeight: 'bold', fontSize: '12px', boxShadow: '0 5px 15px rgba(239, 68, 68, 0.3)' },
-  btnMain: { padding: '12px 25px', backgroundColor: '#fff', color: '#0F172A', border: 'none', fontWeight: '900', borderRadius: '8px', cursor: 'pointer', fontSize: '12px' },
-  content: { padding: '40px', width: '100%' }
+  logoMark: { width: '4px', height: '35px', backgroundColor: '#EF4444', borderRadius: '4px', boxShadow: '0 0 10px rgba(239, 68, 68, 0.3)' },
+  brandName: { fontSize: '19px', fontWeight: '900', color: '#1E293B', margin: 0 },
+  brandStatus: { fontSize: '9px', color: '#94A3B8', fontWeight: 'bold' },
+  navContainer: { 
+    position: 'relative', display: 'flex', backgroundColor: '#F1F5F9', padding: '4px', borderRadius: '12px', width: '260px' 
+  },
+  navSlider: { 
+    position: 'absolute', top: '4px', height: 'calc(100% - 8px)', width: 'calc(50% - 4px)', backgroundColor: '#EF4444', 
+    borderRadius: '8px', transition: '0.3s cubic-bezier(0.4, 0, 0.2, 1)', zIndex: 0 
+  },
+  navBtn: { flex: 1, zIndex: 1, background: 'none', border: 'none', color: '#64748B', fontWeight: '700', fontSize: '11px', cursor: 'pointer' },
+  navBtnActive: { flex: 1, zIndex: 1, background: 'none', border: 'none', color: '#fff', fontWeight: '700', fontSize: '11px', cursor: 'pointer' },
+  actions: { display: 'flex', gap: '10px' },
+  btnMain: { padding: '12px 20px', backgroundColor: '#EF4444', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: '800', cursor: 'pointer', fontSize: '11px', boxShadow: '0 4px 12px rgba(239, 68, 68, 0.2)' },
+  btnSec: { padding: '12px 18px', backgroundColor: '#fff', color: '#1E293B', border: '1px solid #E2E8F0', borderRadius: '10px', fontWeight: '700', fontSize: '11px', cursor: 'pointer' },
+  content: { padding: '30px 40px', width: '100%' }
 }
