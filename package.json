@@ -4,19 +4,19 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-  "dev": "vite",
-  "build": "vite build",
-  "lint": "eslint .",
-  "preview": "vite preview",
-  "start": "npx -y serve -s dist -l $PORT"
-},
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "start": "npx -y serve -s dist -l $PORT"
+  },
   "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
     "jspdf": "^2.5.1",
     "lucide-react": "^0.454.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "serve": "^14.2.4",
-    "@supabase/supabase-js": "^2.45.4"
+    "serve": "^14.2.5"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.2",
