@@ -5,7 +5,6 @@ export default function EquipamentoModal({ onClose }) {
   const [loading, setLoading] = useState(false)
   const [file, setFile] = useState(null)
   
-  // Lista de anos para o seletor (do ano atual até 20 anos atrás)
   const anosRecentes = Array.from(
     { length: 22 }, 
     (_, i) => (new Date().getFullYear() + 1 - i).toString()
@@ -17,12 +16,21 @@ export default function EquipamentoModal({ onClose }) {
     descricao: '', 
     finame: '', 
     configuracao: '',
-    ano: new Date().getFullYear().toString() // Valor padrão: ano atual
+    ano: new Date().getFullYear().toString()
   })
 
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
+  }
+
+  // --- NOVA FUNÇÃO PARA LIMPAR O NOME DO ARQUIVO ---
+  const sanitizeFileName = (name) => {
+    return name
+      .normalize('NFD')              // Decompõe caracteres acentuados (í -> i + ´)
+      .replace(/[\u0300-\u036f]/g, '') // Remove os acentos
+      .replace(/\s+/g, '-')          // Substitui espaços por hífens
+      .replace(/[^a-zA-Z0-9.\-_]/g, '') // Remove qualquer caractere que não seja letra, número, ponto ou traço
   }
 
   const handleSave = async (e) => {
@@ -31,16 +39,19 @@ export default function EquipamentoModal({ onClose }) {
     try {
       let imageUrl = ''
       
-      // 1. Upload da imagem se houver arquivo selecionado
       if (file) {
-        const filePath = `equipamentos/${Math.random()}-${file.name}`
+        // Limpamos o nome do arquivo antes de enviar
+        const cleanName = sanitizeFileName(file.name)
+        const filePath = `equipamentos/${Math.random()}-${cleanName}`
+        
         const { error: uploadError } = await supabase.storage.from('equipamentos').upload(filePath, file)
+        
         if (uploadError) throw uploadError
+        
         const { data } = supabase.storage.from('equipamentos').getPublicUrl(filePath)
         imageUrl = data.publicUrl
       }
 
-      // 2. Inserção no Banco de Dados (incluindo a coluna 'ano')
       const { error } = await supabase.from('Equipamentos').insert([
         { 
           marca: formData.marca,
@@ -48,7 +59,7 @@ export default function EquipamentoModal({ onClose }) {
           descricao: formData.descricao,
           finame: formData.finame,
           configuracao: formData.configuracao,
-          ano: formData.ano, // Novo campo
+          ano: formData.ano,
           imagem: imageUrl 
         }
       ])
@@ -102,7 +113,8 @@ export default function EquipamentoModal({ onClose }) {
 
             <div style={{...mStyles.field, marginTop: '20px'}}>
                <label style={mStyles.label}>FOTO DO EQUIPAMENTO</label>
-               <input type="file" accept="image/*" style={mStyles.input} onChange={(e) => setFile(e.target.files[0])} />
+               <input type="file" accept="image/*" required style={mStyles.input} onChange={(e) => setFile(e.target.files[0])} />
+               <small style={{fontSize: '10px', color: '#666'}}>O sistema limpará nomes com acentos automaticamente.</small>
             </div>
 
             <div style={{...mStyles.field, marginTop: '20px'}}>
@@ -112,7 +124,7 @@ export default function EquipamentoModal({ onClose }) {
           </div>
           <div style={mStyles.footer}>
             <button type="submit" disabled={loading} style={mStyles.saveBtn}>
-              {loading ? 'GRAVANDO DADOS...' : 'SALVAR EQUIPAMENTO NO ESTOQUE'}
+              {loading ? 'GRAVANDO NO SUPABASE...' : 'SALVAR EQUIPAMENTO NO ESTOQUE'}
             </button>
           </div>
         </form>
@@ -122,9 +134,9 @@ export default function EquipamentoModal({ onClose }) {
 }
 
 const mStyles = {
-  overlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100, padding: '10px' },
-  modal: { backgroundColor: '#E5E7EB', width: '100%', maxWidth: '800px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', borderRadius: '4px', boxShadow: '0 20px 25px rgba(0,0,0,0.2)' },
-  header: { padding: '20px 30px', borderBottom: '2px solid #D1D5DB', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff' },
+  overlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, padding: '10px' },
+  modal: { backgroundColor: '#F3F4F6', width: '100%', maxWidth: '800px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', borderRadius: '12px', boxShadow: '0 25px 50px rgba(0,0,0,0.3)', border: '2px solid #000', overflow: 'hidden' },
+  header: { padding: '20px 30px', borderBottom: '2px solid #000', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff' },
   title: { fontSize: '18px', fontWeight: '900', color: '#111827' },
   closeBtn: { background: 'none', border: 'none', color: '#FF0000', cursor: 'pointer', fontWeight: 'bold' },
   form: { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' },
@@ -132,7 +144,7 @@ const mStyles = {
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '20px' },
   field: { display: 'flex', flexDirection: 'column', gap: '8px' },
   label: { fontSize: '11px', fontWeight: '800', color: '#4B5563', letterSpacing: '0.5px' },
-  input: { padding: '12px', backgroundColor: '#fff', border: '1px solid #D1D5DB', fontSize: '15px', borderRadius: '4px', width: '100%', boxSizing: 'border-box' },
-  footer: { padding: '20px 30px', borderTop: '2px solid #D1D5DB', backgroundColor: '#fff' },
-  saveBtn: { width: '100%', backgroundColor: '#111827', color: '#fff', border: 'none', padding: '18px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer', borderRadius: '4px' }
+  input: { padding: '12px', backgroundColor: '#fff', border: '1px solid #D1D5DB', fontSize: '15px', borderRadius: '4px', width: '100%', boxSizing: 'border-box', outline: 'none' },
+  footer: { padding: '20px 30px', borderTop: '2px solid #000', backgroundColor: '#fff' },
+  saveBtn: { width: '100%', backgroundColor: '#EF4444', color: '#fff', border: 'none', padding: '18px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer', borderRadius: '8px', transition: 'all 0.2s' }
 }
