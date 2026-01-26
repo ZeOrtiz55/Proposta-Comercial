@@ -4,12 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview",
-    "start": "serve -s dist -l $PORT"
-  },
+  "dev": "vite",
+  "build": "vite build",
+  "lint": "eslint .",
+  "preview": "vite preview",
+  "start": "npx -y serve -s dist -l $PORT"
+},
   "dependencies": {
     "jspdf": "^2.5.1",
     "lucide-react": "^0.454.0",
