@@ -4,12 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview",
-    "start": "npx -y serve -s dist -l $PORT"
-  },
+  "dev": "vite",
+  "build": "vite build",
+  "lint": "eslint .",
+  "preview": "vite preview",
+  "start": "vite preview --port $PORT --host 0.0.0.0"
+},
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
     "jspdf": "^2.5.1",
