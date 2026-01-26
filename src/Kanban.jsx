@@ -37,43 +37,55 @@ export default function Kanban({ onCardClick }) {
             </div>
             
             <div style={kStyles.list}>
-              {cards.filter(c => c.status === col.nome).map(card => (
-                <div 
-                  key={card.id} 
-                  style={{
-                    ...kStyles.card,
-                    transform: hoveredCard === card.id ? 'translateY(-5px)' : 'none',
-                    boxShadow: hoveredCard === card.id ? '0 10px 20px rgba(0,0,0,0.1)' : '0 2px 5px rgba(0,0,0,0.05)'
-                  }} 
-                  onMouseEnter={() => setHoveredCard(card.id)}
-                  onMouseLeave={() => setHoveredCard(null)}
-                  onClick={() => onCardClick(card)}
-                >
-                  <div style={{...kStyles.statusTab, backgroundColor: col.cor}}></div>
-                  
-                  <div style={kStyles.cardTop}>
-                    <span style={kStyles.client}>{card.Cliente || 'SEM NOME'}</span>
-                    <span style={kStyles.id}>ID #{card.id}</span>
-                  </div>
+              {cards.filter(c => c.status === col.nome).map(card => {
+                // LOGICA DE COR: Verde se veio da fábrica
+                const isFromFactory = !!card.id_fabrica_ref;
+                
+                return (
+                  <div 
+                    key={card.id} 
+                    style={{
+                      ...kStyles.card,
+                      backgroundColor: isFromFactory ? '#F0FDF4' : '#fff', // Fundo verde se origem fábrica
+                      borderColor: isFromFactory ? '#10B981' : '#E5E7EB',
+                      transform: hoveredCard === card.id ? 'translateY(-5px)' : 'none',
+                      boxShadow: hoveredCard === card.id ? '0 10px 20px rgba(0,0,0,0.1)' : '0 2px 5px rgba(0,0,0,0.05)'
+                    }} 
+                    onMouseEnter={() => setHoveredCard(card.id)}
+                    onMouseLeave={() => setHoveredCard(null)}
+                    onClick={() => onCardClick(card)}
+                  >
+                    <div style={{...kStyles.statusTab, backgroundColor: isFromFactory ? '#10B981' : col.cor}}></div>
+                    
+                    <div style={kStyles.cardTop}>
+                      <div style={{display: 'flex', flexDirection: 'column'}}>
+                        <span style={kStyles.client}>{card.Cliente || 'SEM NOME'}</span>
+                        {isFromFactory && (
+                          <span style={{color: '#059669', fontSize: '9px', fontWeight: '900'}}>✓ ORIGEM FÁBRICA #{card.id_fabrica_ref}</span>
+                        )}
+                      </div>
+                      <span style={kStyles.id}>ID #{card.id}</span>
+                    </div>
 
-                  <div style={kStyles.details}>
-                    <p style={kStyles.modelText}>{card.Marca} {card.Modelo}</p>
-                    <p style={kStyles.subText}>{card.Cidade || 'Cidade não inf.'}</p>
-                  </div>
+                    <div style={kStyles.details}>
+                      <p style={kStyles.modelText}>{card.Marca} {card.Modelo}</p>
+                      <p style={kStyles.subText}>{card.Cidade || 'Cidade não inf.'}</p>
+                    </div>
 
-                  <div style={kStyles.cardFooter}>
-                    <div style={kStyles.price}>R$ {Number(card.Valor_Total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
-                    <select 
-                      style={kStyles.statusSelect} 
-                      value={card.status} 
-                      onClick={(e) => e.stopPropagation()}
-                      onChange={(e) => updateStatus(card.id, e.target.value, e)}
-                    >
-                      {COLUNAS.map(f => <option key={f.nome} value={f.nome}>{f.nome}</option>)}
-                    </select>
+                    <div style={kStyles.cardFooter}>
+                      <div style={kStyles.price}>R$ {Number(card.Valor_Total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+                      <select 
+                        style={kStyles.statusSelect} 
+                        value={card.status} 
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => updateStatus(card.id, e.target.value, e)}
+                      >
+                        {COLUNAS.map(f => <option key={f.nome} value={f.nome}>{f.nome}</option>)}
+                      </select>
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         ))}
@@ -95,9 +107,9 @@ const kStyles = {
   badge: { backgroundColor: '#F3F4F6', color: '#111827', fontSize: '11px', fontWeight: 'bold', padding: '4px 10px', borderRadius: '12px' },
   list: { display: 'flex', flexDirection: 'column', gap: '12px' },
   card: { 
-    backgroundColor: '#fff', borderRadius: '8px', padding: '16px', 
+    borderRadius: '8px', padding: '16px', border: '1px solid',
     position: 'relative', cursor: 'pointer', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    overflow: 'hidden', border: '1px solid #E5E7EB'
+    overflow: 'hidden'
   },
   statusTab: { position: 'absolute', top: 0, left: 0, width: '4px', height: '100%' },
   cardTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' },
