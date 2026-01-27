@@ -24,13 +24,12 @@ export default function EquipamentoModal({ onClose }) {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  // --- NOVA FUNÇÃO PARA LIMPAR O NOME DO ARQUIVO ---
   const sanitizeFileName = (name) => {
     return name
-      .normalize('NFD')              // Decompõe caracteres acentuados (í -> i + ´)
-      .replace(/[\u0300-\u036f]/g, '') // Remove os acentos
-      .replace(/\s+/g, '-')          // Substitui espaços por hífens
-      .replace(/[^a-zA-Z0-9.\-_]/g, '') // Remove qualquer caractere que não seja letra, número, ponto ou traço
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/[^a-zA-Z0-9.\-_]/g, '')
   }
 
   const handleSave = async (e) => {
@@ -40,12 +39,10 @@ export default function EquipamentoModal({ onClose }) {
       let imageUrl = ''
       
       if (file) {
-        // Limpamos o nome do arquivo antes de enviar
         const cleanName = sanitizeFileName(file.name)
         const filePath = `equipamentos/${Math.random()}-${cleanName}`
         
         const { error: uploadError } = await supabase.storage.from('equipamentos').upload(filePath, file)
-        
         if (uploadError) throw uploadError
         
         const { data } = supabase.storage.from('equipamentos').getPublicUrl(filePath)
@@ -114,7 +111,6 @@ export default function EquipamentoModal({ onClose }) {
             <div style={{...mStyles.field, marginTop: '20px'}}>
                <label style={mStyles.label}>FOTO DO EQUIPAMENTO</label>
                <input type="file" accept="image/*" required style={mStyles.input} onChange={(e) => setFile(e.target.files[0])} />
-               <small style={{fontSize: '10px', color: '#666'}}>O sistema limpará nomes com acentos automaticamente.</small>
             </div>
 
             <div style={{...mStyles.field, marginTop: '20px'}}>
@@ -124,7 +120,7 @@ export default function EquipamentoModal({ onClose }) {
           </div>
           <div style={mStyles.footer}>
             <button type="submit" disabled={loading} style={mStyles.saveBtn}>
-              {loading ? 'GRAVANDO NO SUPABASE...' : 'SALVAR EQUIPAMENTO NO ESTOQUE'}
+              {loading ? 'GRAVANDO DADOS...' : 'SALVAR EQUIPAMENTO NO ESTOQUE'}
             </button>
           </div>
         </form>
@@ -146,5 +142,5 @@ const mStyles = {
   label: { fontSize: '11px', fontWeight: '800', color: '#4B5563', letterSpacing: '0.5px' },
   input: { padding: '12px', backgroundColor: '#fff', border: '1px solid #D1D5DB', fontSize: '15px', borderRadius: '4px', width: '100%', boxSizing: 'border-box', outline: 'none' },
   footer: { padding: '20px 30px', borderTop: '2px solid #000', backgroundColor: '#fff' },
-  saveBtn: { width: '100%', backgroundColor: '#EF4444', color: '#fff', border: 'none', padding: '18px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer', borderRadius: '8px', transition: 'all 0.2s' }
+  saveBtn: { width: '100%', backgroundColor: '#EF4444', color: '#fff', border: 'none', padding: '18px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer', borderRadius: '8px' }
 }

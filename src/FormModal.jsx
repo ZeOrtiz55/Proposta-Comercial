@@ -13,6 +13,7 @@ export default function FormModal({ onClose, initialData }) {
   const [formData, setFormData] = useState({
     Cliente: initialData?.cliente || '',
     'Cpf/Cpnj': '',
+    'inscricao_esta/mun': '', // NOVO CAMPO ADICIONADO
     Cidade: '',
     Bairro: '',
     End_Entrega: '',
@@ -27,6 +28,8 @@ export default function FormModal({ onClose, initialData }) {
     Valor_Total: '',
     Valor_A_Vista: '',
     Condicoes: '',
+    Tipo_Entrega: 'FOB',
+    validade: '',
     Imagem_Equipamento: '',
     status: 'Enviar Proposta',
     id_fabrica_ref: initialData?.id || ''
@@ -42,12 +45,12 @@ export default function FormModal({ onClose, initialData }) {
     carregarDados()
   }, [])
 
-  // AUTO-PREENCHIMENTO DO CLIENTE
   const handleSelecionarCliente = (c) => {
     setFormData(prev => ({
       ...prev,
       Cliente: c.nome,
       'Cpf/Cpnj': c.cppf_cnpj,
+      'inscricao_esta/mun': c.inscricao_esta || '', // Auto-preenche se existir no cadastro
       Cidade: c.cidade,
       Bairro: c.bairro,
       End_Entrega: c.endereco
@@ -56,7 +59,6 @@ export default function FormModal({ onClose, initialData }) {
     setShowCli(false)
   }
 
-  // AUTO-PREENCHIMENTO DO EQUIPAMENTO
   const handleSelecionarEquipamento = (e) => {
     setFormData(prev => ({
       ...prev,
@@ -67,7 +69,7 @@ export default function FormModal({ onClose, initialData }) {
       Configuracao: e.configuracao,
       'Niname/NCM': e.finame,
       Imagem_Equipamento: e.imagem,
-      Qtd_Eqp: '1' // Mínimo de 1 como solicitado
+      Qtd_Eqp: '1'
     }))
     setBuscaEq(`${e.marca} ${e.modelo}`)
     setShowEq(false)
@@ -124,7 +126,6 @@ export default function FormModal({ onClose, initialData }) {
               </div>
             </div>
 
-            {/* PREVIEW DA FOTO */}
             {formData.Imagem_Equipamento && (
               <center>
                 <div style={f.imgBox}>
@@ -134,12 +135,21 @@ export default function FormModal({ onClose, initialData }) {
               </center>
             )}
 
-            {/* GRADE I: DADOS DO CLIENTE */}
+            {/* GRADE I: CLIENTE */}
             <div style={f.sectionTitle}>I. DADOS DO CLIENTE</div>
             <div style={f.grid}>
               <div style={f.row}>
                 <div style={f.cell}><label style={f.label}>CLIENTE</label><input value={formData.Cliente} readOnly style={f.input} /></div>
-                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>CPF / CNPJ</label><input value={formData['Cpf/Cpnj']} readOnly style={f.input} /></div>
+                <div style={f.cell}><label style={f.label}>CPF / CNPJ</label><input value={formData['Cpf/Cpnj']} readOnly style={f.input} /></div>
+                {/* CAMPO NOVO: IE */}
+                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>INSCRIÇÃO ESTADUAL / MUN.</label>
+                  <input 
+                    value={formData['inscricao_esta/mun']} 
+                    onChange={e => setFormData({...formData, 'inscricao_esta/mun': e.target.value})} 
+                    style={f.input} 
+                    placeholder="Isento ou Número"
+                  />
+                </div>
               </div>
               <div style={{...f.row, borderBottom: 'none'}}>
                 <div style={f.cell}><label style={f.label}>CIDADE</label><input value={formData.Cidade} readOnly style={f.input} /></div>
@@ -147,33 +157,55 @@ export default function FormModal({ onClose, initialData }) {
               </div>
             </div>
 
-            {/* GRADE II: DADOS DO ITEM */}
+            {/* GRADE II: EQUIPAMENTO */}
             <div style={f.sectionTitle}>II. DADOS DO EQUIPAMENTO</div>
             <div style={f.grid}>
               <div style={f.row}>
-                <div style={s.cell}><label style={f.label}>MARCA</label><input value={formData.Marca} readOnly style={f.input} /></div>
-                <div style={s.cell}><label style={f.label}>MODELO</label><input value={formData.Modelo} readOnly style={f.input} /></div>
-                <div style={{...s.cell, borderRight: 'none'}}><label style={f.label}>ANO</label><input value={formData.Ano} readOnly style={f.input} /></div>
-              </div>
-              <div style={f.row}>
-                <div style={s.cell}><label style={f.label}>FINAME / NCM</label><input value={formData['Niname/NCM']} readOnly style={f.input} /></div>
-                <div style={{...s.cell, borderRight: 'none'}}><label style={f.label}>QUANTIDADE</label><input type="number" value={formData.Qtd_Eqp} onChange={e => setFormData({...formData, Qtd_Eqp: e.target.value})} style={f.input} /></div>
+                <div style={f.cell}><label style={f.label}>MARCA</label><input value={formData.Marca} readOnly style={f.input} /></div>
+                <div style={f.cell}><label style={f.label}>MODELO</label><input value={formData.Modelo} readOnly style={f.input} /></div>
+                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>ANO</label><input value={formData.Ano} readOnly style={f.input} /></div>
               </div>
               <div style={{...f.row, borderBottom: 'none'}}>
-                <div style={{...s.cell, borderRight: 'none'}}><label style={f.label}>DESCRIÇÃO</label><input value={formData.Descricao} readOnly style={f.input} /></div>
+                <div style={f.cell}><label style={f.label}>FINAME / NCM</label><input value={formData['Niname/NCM']} readOnly style={f.input} /></div>
+                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>QUANTIDADE</label><input type="number" value={formData.Qtd_Eqp} onChange={e => setFormData({...formData, Qtd_Eqp: e.target.value})} style={f.input} /></div>
               </div>
             </div>
 
-            {/* GRADE III: FINANCEIRO (MANUAL) */}
-            <div style={f.sectionTitle}>III. CONDIÇÕES FINANCEIRAS</div>
+            {/* GRADE III: FINANCEIRO E ENTREGA */}
+            <div style={f.sectionTitle}>III. CONDIÇÕES FINANCEIRAS E ENTREGA</div>
             <div style={f.grid}>
               <div style={f.row}>
-                <div style={s.cell}><label style={f.label}>VALOR TOTAL (R$)</label><input type="number" required placeholder="0.00" onChange={e => setFormData({...formData, Valor_Total: e.target.value})} style={{...f.input, color: 'red'}} /></div>
-                <div style={{...s.cell, borderRight: 'none'}}><label style={f.label}>VALOR À VISTA (R$)</label><input type="number" placeholder="0.00" onChange={e => setFormData({...formData, Valor_A_Vista: e.target.value})} style={{...f.input, color: 'green'}} /></div>
+                <div style={f.cell}><label style={f.label}>VALOR TOTAL (R$)</label><input type="number" required placeholder="0.00" onChange={e => setFormData({...formData, Valor_Total: e.target.value})} style={{...f.input, color: 'red'}} /></div>
+                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>VALOR À VISTA (R$)</label><input type="number" placeholder="0.00" onChange={e => setFormData({...formData, Valor_A_Vista: e.target.value})} style={{...f.input, color: 'green'}} /></div>
+              </div>
+              <div style={f.row}>
+                <div style={f.cell}><label style={f.label}>PRAZO ENTREGA (DIAS)</label><input type="number" placeholder="Ex: 30" onChange={e => setFormData({...formData, Prazo_Entrega: e.target.value})} style={f.input} /></div>
+                <div style={{...f.cell, borderRight: 'none'}}>
+                  <label style={f.label}>TIPO DE ENTREGA</label>
+                  <select 
+                    value={formData.Tipo_Entrega} 
+                    onChange={e => setFormData({...formData, Tipo_Entrega: e.target.value})}
+                    style={{...f.input, cursor: 'pointer', appearance: 'none', background: 'none'}}
+                  >
+                    <option value="FOB">FOB (CLIENTE RETIRA NA LOJA)</option>
+                    <option value="CIF">CIF (ENTREGA NA PROPRIEDADE)</option>
+                  </select>
+                </div>
               </div>
               <div style={{...f.row, borderBottom: 'none'}}>
-                <div style={s.cell}><label style={f.label}>PRAZO ENTREGA (DIAS)</label><input type="number" placeholder="Ex: 30" onChange={e => setFormData({...formData, Prazo_Entrega: e.target.value})} style={f.input} /></div>
-                <div style={{...s.cell, borderRight: 'none'}}><label style={f.label}>CONDIÇÕES DE PAGAMENTO</label><input placeholder="Ex: Financiamento / Banco" onChange={e => setFormData({...formData, Condicoes: e.target.value})} style={f.input} /></div>
+                <div style={f.cell}>
+                  <label style={f.label}>VALIDADE DA PROPOSTA (DIAS)</label>
+                  <input 
+                    type="number" 
+                    placeholder="Ex: 7" 
+                    onChange={e => setFormData({...formData, validade: e.target.value})} 
+                    style={{...f.input, color: '#B45309'}} 
+                  />
+                </div>
+                <div style={{...f.cell, borderRight: 'none'}}>
+                  <label style={f.label}>CONDIÇÕES DE PAGAMENTO</label>
+                  <input placeholder="Ex: Financiamento / Banco" onChange={e => setFormData({...formData, Condicoes: e.target.value})} style={f.input} />
+                </div>
               </div>
             </div>
 
@@ -212,5 +244,3 @@ const f = {
   btnMain: { width: '100%', padding: '15px', backgroundColor: '#EF4444', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '900', cursor: 'pointer', fontSize: '16px' },
   closeBtn: { border: 'none', background: 'none', fontWeight: '900', cursor: 'pointer' }
 }
-
-const s = f // Alias para manter compatibilidade com as células
