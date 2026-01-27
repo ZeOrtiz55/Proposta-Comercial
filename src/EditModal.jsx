@@ -6,13 +6,10 @@ export default function EditModal({ proposal, onClose }) {
   const [formData, setFormData] = useState(proposal || {})
   const [imagePreview, setImagePreview] = useState(proposal?.Imagem_Equipamento || '')
   const [assinaturaDiretor, setAssinaturaDiretor] = useState(null)
-<<<<<<< HEAD
   
   // ESTADOS PARA HISTÓRICO E FÁBRICA
   const [history, setHistory] = useState([])
   const [newNote, setNewNote] = useState('')
-=======
->>>>>>> b70dd3e837fcccd73737fe6d7b6a7afb18571f01
   const [factoryData, setFactoryData] = useState(null)
 
   useEffect(() => {
@@ -20,19 +17,12 @@ export default function EditModal({ proposal, onClose }) {
       setFormData({ ...proposal })
       setImagePreview(proposal.Imagem_Equipamento)
       fetchConfig()
-<<<<<<< HEAD
       fetchHistory()
       // Gatilho para buscar info da fábrica se o ID existir
       if (proposal.id_fabrica_ref) {
         fetchFactoryInfo(proposal.id_fabrica_ref)
       } else {
         setFactoryData(null) // Limpa se for uma proposta direta
-=======
-      if (proposal.id_fabrica_ref) {
-        fetchFactoryInfo(proposal.id_fabrica_ref)
-      } else {
-        setFactoryData(null)
->>>>>>> b70dd3e837fcccd73737fe6d7b6a7afb18571f01
       }
     }
   }, [proposal])
@@ -42,7 +32,6 @@ export default function EditModal({ proposal, onClose }) {
     if (data) setAssinaturaDiretor(data.assinatura_url)
   }
 
-<<<<<<< HEAD
   const fetchHistory = async () => {
     const { data, error } = await supabase
       .from('Historico')
@@ -77,22 +66,11 @@ export default function EditModal({ proposal, onClose }) {
     }
   }
 
-=======
-  const fetchFactoryInfo = async (idRef) => {
-    const { data } = await supabase.from('Proposta_Fabrica').select('*').eq('id', idRef).single()
-    if (data) setFactoryData(data)
-  }
-
->>>>>>> b70dd3e837fcccd73737fe6d7b6a7afb18571f01
   const getImageDimensions = (url) => {
     return new Promise((resolve) => {
       const img = new Image()
       img.onload = () => resolve({ width: img.width, height: img.height })
-<<<<<<< HEAD
       img.onerror = () => resolve({ width: 100, height: 50 }) // Fallback
-=======
-      img.onerror = () => resolve({ width: 100, height: 50 })
->>>>>>> b70dd3e837fcccd73737fe6d7b6a7afb18571f01
       img.src = url
     })
   }
@@ -193,11 +171,7 @@ export default function EditModal({ proposal, onClose }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
             <div style={{ width: '4px', height: '25px', backgroundColor: '#EF4444' }}></div>
             <div>
-<<<<<<< HEAD
               <h2 style={{ fontWeight: '900', color: '#000', margin: 0 }}>PROPOSTA CLIENTE #{formData.id}</h2>
-=======
-              <h2 style={{ fontWeight: '900', color: '#000', margin: 0 }}>EDIÇÃO PROPOSTA #{formData.id}</h2>
->>>>>>> b70dd3e837fcccd73737fe6d7b6a7afb18571f01
               {formData.id_fabrica_ref && <span style={s.factoryTag}>✓ ORIGEM FÁBRICA #{formData.id_fabrica_ref}</span>}
             </div>
           </div>
@@ -209,10 +183,7 @@ export default function EditModal({ proposal, onClose }) {
 
         <div style={s.scroll}>
           <div style={s.vList}>
-<<<<<<< HEAD
             {/* PAINEL INFORMATIVO DA FÁBRICA */}
-=======
->>>>>>> b70dd3e837fcccd73737fe6d7b6a7afb18571f01
             {factoryData && (
               <div style={s.factoryBox}>
                 <div style={s.factoryTitle}>DADOS VINCULADOS AO PEDIDO DE FÁBRICA</div>
@@ -258,14 +229,7 @@ export default function EditModal({ proposal, onClose }) {
               <div style={s.row}>
                 <div style={s.cell}><label style={s.label}>VALOR TOTAL</label><input value={formData.Valor_Total || ''} onChange={e => setFormData({ ...formData, Valor_Total: e.target.value })} style={{ ...s.input, color: 'red' }} /></div>
                 <div style={s.cell}><label style={s.label}>À VISTA</label><input value={formData.Valor_A_Vista || ''} onChange={e => setFormData({ ...formData, Valor_A_Vista: e.target.value })} style={{ ...s.input, color: 'green' }} /></div>
-<<<<<<< HEAD
-                <div style={{ ...s.cell, borderRight: 'none' }}><label style={s.label}>PRAZO</label><input value={formData.Prazo_Entrega || ''} onChange={e => setFormData({ ...formData, Prazo_Entrega: e.target.value })} style={s.input} /></div>
-=======
                 <div style={{ ...s.cell, borderRight: 'none' }}><label style={s.label}>PRAZO ENTREGA</label><input value={formData.Prazo_Entrega || ''} onChange={e => setFormData({ ...formData, Prazo_Entrega: e.target.value })} style={s.input} /></div>
-              </div>
-              <div style={s.row}>
-                <div style={{ ...s.cell, borderRight: 'none' }}><label style={s.label}>CONDIÇÕES DE PAGAMENTO</label><input value={formData.Condicoes || ''} onChange={e => setFormData({ ...formData, Condicoes: e.target.value })} style={s.input} /></div>
->>>>>>> b70dd3e837fcccd73737fe6d7b6a7afb18571f01
               </div>
               <div style={s.row}>
                 <div style={{ ...s.cell, borderRight: 'none' }}><label style={s.label}>CONDIÇÕES DE PAGAMENTO</label><input value={formData.Condicoes || ''} onChange={e => setFormData({ ...formData, Condicoes: e.target.value })} style={s.input} /></div>
@@ -283,8 +247,8 @@ export default function EditModal({ proposal, onClose }) {
                   {history.length === 0 ? <p style={{fontSize: '11px', color: '#999'}}>Nenhuma nota registrada.</p> : 
                     history.map(item => (
                       <div key={item.id} style={s.historyItem}>
-                         <span style={s.historyDate}>{new Date(item.created_at).toLocaleString('pt-BR')}</span>
-                         <div style={s.historyText}>{item.texto}</div>
+                          <span style={s.historyDate}>{new Date(item.created_at).toLocaleString('pt-BR')}</span>
+                          <div style={s.historyText}>{item.texto}</div>
                       </div>
                     ))
                   }
@@ -316,7 +280,6 @@ const s = {
   input: { border: 'none', outline: 'none', fontSize: '15px', fontWeight: '700', color: '#000', background: 'none', width: '100%' },
   textarea: { border: 'none', outline: 'none', fontSize: '14px', width: '100%', minHeight: '80px', background: 'none', resize: 'none', fontWeight: '600' },
   imgPreview: { width: '320px', border: '4px solid #000', borderRadius: '12px', marginBottom: '15px' },
-<<<<<<< HEAD
   historyContainer: { backgroundColor: '#fff', border: '2px solid #000', borderRadius: '10px', padding: '20px' },
   noteTextarea: { flex: 1, minHeight: '60px', border: '1px solid #ddd', borderRadius: '8px', padding: '10px', fontSize: '13px' },
   btnAddNote: { padding: '0 25px', backgroundColor: '#000', color: '#fff', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' },
@@ -324,8 +287,6 @@ const s = {
   historyItem: { padding: '10px', borderLeft: '4px solid #EF4444', backgroundColor: '#f9f9f9' },
   historyDate: { fontSize: '10px', color: '#666', fontWeight: 'bold' },
   historyText: { fontSize: '13px', fontWeight: '600', marginTop: '3px' },
-=======
->>>>>>> b70dd3e837fcccd73737fe6d7b6a7afb18571f01
   factoryBox: { backgroundColor: '#F0FDF4', border: '2px solid #10B981', borderRadius: '10px', padding: '15px' },
   factoryTitle: { fontSize: '10px', fontWeight: '900', color: '#059669', marginBottom: '10px' },
   factoryGrid: { display: 'flex', gap: '40px', fontSize: '13px', fontWeight: '700' },
