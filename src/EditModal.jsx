@@ -6,10 +6,6 @@ export default function EditModal({ proposal, onClose }) {
   const [formData, setFormData] = useState(proposal || {})
   const [imagePreview, setImagePreview] = useState(proposal?.Imagem_Equipamento || '')
   const [assinaturaDiretor, setAssinaturaDiretor] = useState(null)
-  
-  // ESTADOS PARA HISTÓRICO E FÁBRICA
-  const [history, setHistory] = useState([])
-  const [newNote, setNewNote] = useState('')
   const [factoryData, setFactoryData] = useState(null)
 
   useEffect(() => {
@@ -17,12 +13,10 @@ export default function EditModal({ proposal, onClose }) {
       setFormData({ ...proposal })
       setImagePreview(proposal.Imagem_Equipamento)
       fetchConfig()
-      fetchHistory()
-      // Gatilho para buscar info da fábrica se o ID existir
       if (proposal.id_fabrica_ref) {
         fetchFactoryInfo(proposal.id_fabrica_ref)
       } else {
-        setFactoryData(null) // Limpa se for uma proposta direta
+        setFactoryData(null)
       }
     }
   }, [proposal])
@@ -32,50 +26,20 @@ export default function EditModal({ proposal, onClose }) {
     if (data) setAssinaturaDiretor(data.assinatura_url)
   }
 
-  const fetchHistory = async () => {
-    const { data, error } = await supabase
-      .from('Historico')
-      .select('*')
-      .eq('proposal_id', proposal.id)
-      .order('created_at', { ascending: false })
-    
-    if (error) console.error("Erro histórico:", error)
-    if (data) setHistory(data)
-  }
-
   const fetchFactoryInfo = async (idRef) => {
-    const { data, error } = await supabase
-      .from('Proposta_Fabrica')
-      .select('*')
-      .eq('id', idRef)
-      .single()
-    
-    if (error) console.error("Erro fábrica:", error)
+    const { data } = await supabase.from('Proposta_Fabrica').select('*').eq('id', idRef).single()
     if (data) setFactoryData(data)
-  }
-
-  const handleAddNote = async () => {
-    if (!newNote.trim()) return
-    const { error } = await supabase
-      .from('Historico')
-      .insert([{ proposal_id: proposal.id, texto: newNote }])
-    
-    if (!error) {
-      setNewNote('')
-      fetchHistory()
-    }
   }
 
   const getImageDimensions = (url) => {
     return new Promise((resolve) => {
       const img = new Image()
       img.onload = () => resolve({ width: img.width, height: img.height })
-      img.onerror = () => resolve({ width: 100, height: 50 }) // Fallback
+      img.onerror = () => resolve({ width: 100, height: 50 })
       img.src = url
     })
   }
 
-  // --- PDF COMPLETO RESTAURADO ---
   const handlePrint = async () => {
     const doc = new jsPDF()
     const margin = 15
@@ -149,12 +113,19 @@ export default function EditModal({ proposal, onClose }) {
 
     // ASSINATURAS
     y = 260; const lineW = 80; const midPoint = margin + (lineW / 2)
-    doc.line(margin, y, margin + lineW, y); doc.setFontSize(7)
+    
+    // Assinatura do Cliente (Manteve a linha)
+    doc.setDrawColor(0)
+    doc.line(margin, y, margin + lineW, y)
+    doc.setFontSize(7)
     doc.text(`${formData.Cliente || ''}`.toUpperCase(), midPoint, y + 5, { align: "center" })
     doc.text(`CPF/CNPJ: ${formData['Cpf/Cpnj'] || ''}`, midPoint, y + 9, { align: "center" })
 
-    doc.line(pageWidth - margin - lineW, y, pageWidth - margin, y)
-    if (assinaturaDiretor) { doc.addImage(assinaturaDiretor, 'PNG', pageWidth - margin - lineW, y, lineW, 20) }
+    // Assinatura do Diretor (REMOVIDA A LINHA)
+    if (assinaturaDiretor) { 
+      // A imagem começa em 'y' (onde estaria a linha) e desce
+      doc.addImage(assinaturaDiretor, 'PNG', pageWidth - margin - lineW, y, lineW, 20) 
+    }
 
     doc.save(`Proposta_${formData.Cliente || 'NovaTratores'}.pdf`)
   }
@@ -171,7 +142,7 @@ export default function EditModal({ proposal, onClose }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
             <div style={{ width: '4px', height: '25px', backgroundColor: '#EF4444' }}></div>
             <div>
-              <h2 style={{ fontWeight: '900', color: '#000', margin: 0 }}>PROPOSTA CLIENTE #{formData.id}</h2>
+              <h2 style={{ fontWeight: '900', color: '#000', margin: 0 }}>EDIÇÃO PROPOSTA #{formData.id}</h2>
               {formData.id_fabrica_ref && <span style={s.factoryTag}>✓ ORIGEM FÁBRICA #{formData.id_fabrica_ref}</span>}
             </div>
           </div>
@@ -183,7 +154,6 @@ export default function EditModal({ proposal, onClose }) {
 
         <div style={s.scroll}>
           <div style={s.vList}>
-            {/* PAINEL INFORMATIVO DA FÁBRICA */}
             {factoryData && (
               <div style={s.factoryBox}>
                 <div style={s.factoryTitle}>DADOS VINCULADOS AO PEDIDO DE FÁBRICA</div>
@@ -235,25 +205,6 @@ export default function EditModal({ proposal, onClose }) {
                 <div style={{ ...s.cell, borderRight: 'none' }}><label style={s.label}>CONDIÇÕES DE PAGAMENTO</label><input value={formData.Condicoes || ''} onChange={e => setFormData({ ...formData, Condicoes: e.target.value })} style={s.input} /></div>
               </div>
             </div>
-
-            {/* IV. HISTÓRICO - CORREÇÃO DE FUNCIONALIDADE */}
-            <div style={s.sectionTitle}>IV. HISTÓRICO DE INTERAÇÕES</div>
-            <div style={s.historyContainer}>
-               <div style={{display: 'flex', gap: '10px', marginBottom: '15px'}}>
-                  <textarea placeholder="Adicionar nota..." value={newNote} onChange={e => setNewNote(e.target.value)} style={s.noteTextarea} />
-                  <button onClick={handleAddNote} style={s.btnAddNote}>SALVAR</button>
-               </div>
-               <div style={s.historyList}>
-                  {history.length === 0 ? <p style={{fontSize: '11px', color: '#999'}}>Nenhuma nota registrada.</p> : 
-                    history.map(item => (
-                      <div key={item.id} style={s.historyItem}>
-                          <span style={s.historyDate}>{new Date(item.created_at).toLocaleString('pt-BR')}</span>
-                          <div style={s.historyText}>{item.texto}</div>
-                      </div>
-                    ))
-                  }
-               </div>
-            </div>
           </div>
         </div>
 
@@ -280,14 +231,7 @@ const s = {
   input: { border: 'none', outline: 'none', fontSize: '15px', fontWeight: '700', color: '#000', background: 'none', width: '100%' },
   textarea: { border: 'none', outline: 'none', fontSize: '14px', width: '100%', minHeight: '80px', background: 'none', resize: 'none', fontWeight: '600' },
   imgPreview: { width: '320px', border: '4px solid #000', borderRadius: '12px', marginBottom: '15px' },
-  historyContainer: { backgroundColor: '#fff', border: '2px solid #000', borderRadius: '10px', padding: '20px' },
-  noteTextarea: { flex: 1, minHeight: '60px', border: '1px solid #ddd', borderRadius: '8px', padding: '10px', fontSize: '13px' },
-  btnAddNote: { padding: '0 25px', backgroundColor: '#000', color: '#fff', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' },
-  historyList: { display: 'flex', flexDirection: 'column', gap: '10px' },
-  historyItem: { padding: '10px', borderLeft: '4px solid #EF4444', backgroundColor: '#f9f9f9' },
-  historyDate: { fontSize: '10px', color: '#666', fontWeight: 'bold' },
-  historyText: { fontSize: '13px', fontWeight: '600', marginTop: '3px' },
-  factoryBox: { backgroundColor: '#F0FDF4', border: '2px solid #10B981', borderRadius: '10px', padding: '15px' },
+  factoryBox: { backgroundColor: '#F0FDF4', border: '2px solid #10B981', borderRadius: '10px', padding: '15px', marginBottom: '10px' },
   factoryTitle: { fontSize: '10px', fontWeight: '900', color: '#059669', marginBottom: '10px' },
   factoryGrid: { display: 'flex', gap: '40px', fontSize: '13px', fontWeight: '700' },
   footer: { padding: '20px 40px', backgroundColor: '#fff', borderTop: '3px solid #000' },
