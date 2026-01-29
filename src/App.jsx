@@ -10,37 +10,13 @@ import EquipamentoModal from './EquipamentoModal'
 import ClientEditModal from './ClientEditModal'
 import EquipamentoEditModal from './EquipamentoEditModal'
 
-// IMPORTAÇÃO DO SERVIÇO OMIE
-import { syncOmieToSupabase } from './omieService'
-
 export default function App() {
   const [view, setView] = useState('fabrica')
-  const [syncing, setSyncing] = useState(false) // Estado para o carregamento do Omie
   const [modals, setModals] = useState({ 
-    newFab: false, 
-    editFab: false, 
-    newCli: false, 
-    editCli: false, 
-    client: false, 
-    equip: false,
-    searchEditClient: false, 
-    searchEditEquip: false   
+    newFab: false, editFab: false, newCli: false, editCli: false, 
+    client: false, equip: false, searchEditClient: false, searchEditEquip: false 
   })
   const [selected, setSelected] = useState(null)
-
-  // FUNÇÃO PARA DISPARAR SINCRONISMO
-  const handleOmieSync = async () => {
-    if (!confirm("Deseja sincronizar os clientes do Omie agora?")) return;
-    setSyncing(true);
-    const res = await syncOmieToSupabase();
-    setSyncing(false);
-    
-    if (res.success) {
-      alert(`SUCESSO! ${res.count} clientes sincronizados.`);
-    } else {
-      alert("ERRO NA SINCRONIZAÇÃO: " + res.error);
-    }
-  }
 
   const convertToCli = (data) => { 
     setSelected(data); 
@@ -52,10 +28,7 @@ export default function App() {
       <header style={ui.header}>
         <div style={ui.brand}>
           <div style={ui.logoMark}></div>
-          <div>
-            <h1 style={ui.brandName}>NOVA TRATORES</h1>
-            <span style={ui.brandStatus}>COMMAND CENTER</span>
-          </div>
+          <div><h1 style={ui.brandName}>NOVA TRATORES</h1><span style={ui.brandStatus}>COMMAND CENTER</span></div>
         </div>
 
         <div style={ui.navContainer}>
@@ -65,21 +38,10 @@ export default function App() {
         </div>
 
         <div style={ui.actions}>
-          {/* BOTÃO OMIE ADICIONADO */}
-          <button 
-            onClick={handleOmieSync} 
-            disabled={syncing} 
-            style={{...ui.btnEdit, backgroundColor: '#003366'}}
-          >
-            {syncing ? 'SINCRONIZANDO...' : '🔄 OMIE'}
-          </button>
-
           <button onClick={() => setModals({...modals, client: true})} style={ui.btnSec}>+ CLIENTE</button>
           <button onClick={() => setModals({...modals, equip: true})} style={ui.btnSec}>+ MÁQUINA</button>
-          
           <button onClick={() => setModals({...modals, searchEditClient: true})} style={ui.btnEdit}>EDITAR CLIENTE</button>
           <button onClick={() => setModals({...modals, searchEditEquip: true})} style={ui.btnEdit}>EDITAR MÁQUINA</button>
-
           <button 
             onClick={() => view === 'fabrica' ? setModals({...modals, newFab: true}) : setModals({...modals, newCli: true})} 
             style={ui.btnMain}
@@ -105,43 +67,26 @@ export default function App() {
       {modals.editCli && <EditModal proposal={selected} onClose={() => setModals({...modals, editCli: false})} />}
       {modals.client && <ClientModal onClose={() => setModals({...modals, client: false})} />}
       {modals.equip && <EquipamentoModal onClose={() => setModals({...modals, equip: false})} />}
-
-      {modals.searchEditClient && (
-        <ClientEditModal onClose={() => setModals({...modals, searchEditClient: false})} />
-      )}
-      {modals.searchEditEquip && (
-        <EquipamentoEditModal onClose={() => setModals({...modals, searchEditEquip: false})} />
-      )}
+      {modals.searchEditClient && <ClientEditModal onClose={() => setModals({...modals, searchEditClient: false})} />}
+      {modals.searchEditEquip && <EquipamentoEditModal onClose={() => setModals({...modals, searchEditEquip: false})} />}
     </div>
   )
 }
 
 const ui = {
   body: { minHeight: '100vh', width: '100%', backgroundColor: '#F8FAFC' },
-  header: { 
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 40px',
-    backgroundColor: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(20px)', borderBottom: '1px solid #E2E8F0',
-    position: 'sticky', top: 0, zIndex: 1000, width: '100%'
-  },
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 40px', backgroundColor: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(20px)', borderBottom: '1px solid #E2E8F0', position: 'sticky', top: 0, zIndex: 1000 },
   brand: { display: 'flex', alignItems: 'center', gap: '15px' },
-  logoMark: { width: '4px', height: '35px', backgroundColor: '#EF4444', borderRadius: '4px', boxShadow: '0 0 10px rgba(239, 68, 68, 0.3)' },
+  logoMark: { width: '4px', height: '35px', backgroundColor: '#EF4444', borderRadius: '4px' },
   brandName: { fontSize: '19px', fontWeight: '900', color: '#1E293B', margin: 0 },
   brandStatus: { fontSize: '9px', color: '#94A3B8', fontWeight: 'bold' },
-  navContainer: { 
-    position: 'relative', display: 'flex', backgroundColor: '#F1F5F9', padding: '4px', borderRadius: '12px', width: '260px' 
-  },
-  navSlider: { 
-    position: 'absolute', top: '4px', height: 'calc(100% - 8px)', width: 'calc(50% - 4px)', backgroundColor: '#EF4444', 
-    borderRadius: '8px', transition: '0.3s cubic-bezier(0.4, 0, 0.2, 1)', zIndex: 0 
-  },
+  navContainer: { position: 'relative', display: 'flex', backgroundColor: '#F1F5F9', padding: '4px', borderRadius: '12px', width: '260px' },
+  navSlider: { position: 'absolute', top: '4px', height: 'calc(100% - 8px)', width: 'calc(50% - 4px)', backgroundColor: '#EF4444', borderRadius: '8px', transition: '0.3s', zIndex: 0 },
   navBtn: { flex: 1, zIndex: 1, background: 'none', border: 'none', color: '#64748B', fontWeight: '700', fontSize: '11px', cursor: 'pointer' },
   navBtnActive: { flex: 1, zIndex: 1, background: 'none', border: 'none', color: '#fff', fontWeight: '700', fontSize: '11px', cursor: 'pointer' },
   actions: { display: 'flex', gap: '10px' },
-  btnMain: { padding: '12px 20px', backgroundColor: '#EF4444', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: '800', cursor: 'pointer', fontSize: '11px', boxShadow: '0 4px 12px rgba(239, 68, 68, 0.2)' },
+  btnMain: { padding: '12px 20px', backgroundColor: '#EF4444', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: '800', cursor: 'pointer', fontSize: '11px' },
   btnSec: { padding: '12px 18px', backgroundColor: '#fff', color: '#1E293B', border: '1px solid #E2E8F0', borderRadius: '10px', fontWeight: '700', fontSize: '11px', cursor: 'pointer' },
-  btnEdit: { 
-    padding: '12px 18px', backgroundColor: '#1E293B', color: '#fff', border: 'none', borderRadius: '10px', 
-    fontWeight: '700', fontSize: '11px', cursor: 'pointer', transition: '0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-  },
-  content: { padding: '30px 40px', width: '100%' }
+  btnEdit: { padding: '12px 18px', backgroundColor: '#1E293B', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: '700', fontSize: '11px', cursor: 'pointer' },
+  content: { padding: '30px 40px' }
 }
