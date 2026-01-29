@@ -7,13 +7,15 @@ import FactoryFormModal from './FactoryFormModal'
 import FactoryEditModal from './FactoryEditModal'
 import ClientModal from './ClientModal'
 import EquipamentoModal from './EquipamentoModal'
-
-// IMPORTAÇÃO DOS NOVOS MODAIS DE BUSCA E EDIÇÃO
 import ClientEditModal from './ClientEditModal'
 import EquipamentoEditModal from './EquipamentoEditModal'
 
+// IMPORTAÇÃO DO SERVIÇO OMIE
+import { syncOmieToSupabase } from './omieService'
+
 export default function App() {
   const [view, setView] = useState('fabrica')
+  const [syncing, setSyncing] = useState(false) // Estado para o carregamento do Omie
   const [modals, setModals] = useState({ 
     newFab: false, 
     editFab: false, 
@@ -21,10 +23,24 @@ export default function App() {
     editCli: false, 
     client: false, 
     equip: false,
-    searchEditClient: false, // NOVO: Estado para busca de cliente
-    searchEditEquip: false   // NOVO: Estado para busca de máquina
+    searchEditClient: false, 
+    searchEditEquip: false   
   })
   const [selected, setSelected] = useState(null)
+
+  // FUNÇÃO PARA DISPARAR SINCRONISMO
+  const handleOmieSync = async () => {
+    if (!confirm("Deseja sincronizar os clientes do Omie agora?")) return;
+    setSyncing(true);
+    const res = await syncOmieToSupabase();
+    setSyncing(false);
+    
+    if (res.success) {
+      alert(`SUCESSO! ${res.count} clientes sincronizados.`);
+    } else {
+      alert("ERRO NA SINCRONIZAÇÃO: " + res.error);
+    }
+  }
 
   const convertToCli = (data) => { 
     setSelected(data); 
@@ -42,7 +58,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* NAVEGAÇÃO INTERATIVA BEGE/VERMELHO */}
         <div style={ui.navContainer}>
           <div style={{...ui.navSlider, left: view === 'fabrica' ? '4px' : '50%'}}></div>
           <button onClick={() => setView('fabrica')} style={view === 'fabrica' ? ui.navBtnActive : ui.navBtn}>FÁBRICA</button>
@@ -50,11 +65,18 @@ export default function App() {
         </div>
 
         <div style={ui.actions}>
-          {/* BOTÕES ORIGINAIS DE CADASTRO */}
+          {/* BOTÃO OMIE ADICIONADO */}
+          <button 
+            onClick={handleOmieSync} 
+            disabled={syncing} 
+            style={{...ui.btnEdit, backgroundColor: '#003366'}}
+          >
+            {syncing ? 'SINCRONIZANDO...' : '🔄 OMIE'}
+          </button>
+
           <button onClick={() => setModals({...modals, client: true})} style={ui.btnSec}>+ CLIENTE</button>
           <button onClick={() => setModals({...modals, equip: true})} style={ui.btnSec}>+ MÁQUINA</button>
           
-          {/* NOVOS BOTÕES DE EDIÇÃO */}
           <button onClick={() => setModals({...modals, searchEditClient: true})} style={ui.btnEdit}>EDITAR CLIENTE</button>
           <button onClick={() => setModals({...modals, searchEditEquip: true})} style={ui.btnEdit}>EDITAR MÁQUINA</button>
 
@@ -77,7 +99,6 @@ export default function App() {
         </div>
       </main>
 
-      {/* MODAIS DE CADASTRO (MANTIDOS ORIGINAIS) */}
       {modals.newFab && <FactoryFormModal onClose={() => setModals({...modals, newFab: false})} />}
       {modals.editFab && <FactoryEditModal order={selected} onClose={() => setModals({...modals, editFab: false})} onConvert={convertToCli} />}
       {modals.newCli && <FormModal initialData={selected} onClose={() => setModals({...modals, newCli: false})} />}
@@ -85,7 +106,6 @@ export default function App() {
       {modals.client && <ClientModal onClose={() => setModals({...modals, client: false})} />}
       {modals.equip && <EquipamentoModal onClose={() => setModals({...modals, equip: false})} />}
 
-      {/* NOVOS MODAIS DE BUSCA E EDIÇÃO */}
       {modals.searchEditClient && (
         <ClientEditModal onClose={() => setModals({...modals, searchEditClient: false})} />
       )}
@@ -119,20 +139,9 @@ const ui = {
   actions: { display: 'flex', gap: '10px' },
   btnMain: { padding: '12px 20px', backgroundColor: '#EF4444', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: '800', cursor: 'pointer', fontSize: '11px', boxShadow: '0 4px 12px rgba(239, 68, 68, 0.2)' },
   btnSec: { padding: '12px 18px', backgroundColor: '#fff', color: '#1E293B', border: '1px solid #E2E8F0', borderRadius: '10px', fontWeight: '700', fontSize: '11px', cursor: 'pointer' },
-  
-  // ESTILO PARA OS BOTÕES DE EDIÇÃO
   btnEdit: { 
-    padding: '12px 18px', 
-    backgroundColor: '#1E293B', 
-    color: '#fff', 
-    border: 'none', 
-    borderRadius: '10px', 
-    fontWeight: '700', 
-    fontSize: '11px', 
-    cursor: 'pointer',
-    transition: '0.2s',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+    padding: '12px 18px', backgroundColor: '#1E293B', color: '#fff', border: 'none', borderRadius: '10px', 
+    fontWeight: '700', fontSize: '11px', cursor: 'pointer', transition: '0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
   },
-
   content: { padding: '30px 40px', width: '100%' }
 }
