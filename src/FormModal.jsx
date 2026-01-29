@@ -16,7 +16,7 @@ export default function FormModal({ onClose, initialData }) {
     'inscricao_esta/mun': '', 
     Cidade: '',
     Bairro: '',
-    cep: '', // NOVO CAMPO
+    cep: '',
     End_Entrega: '',
     Qtd_Eqp: '1',
     Marca: initialData?.marca || '',
@@ -46,33 +46,30 @@ export default function FormModal({ onClose, initialData }) {
     carregarDados()
   }, [])
 
-  // LOGICA DE SELEÇÃO: PUXA TUDO AUTOMATICAMENTE
   const handleSelecionarCliente = (c) => {
+    const nomeExibir = c.nome || c.nome_fantasia || c.razao_social;
+    const documento = c.cppf_cnpj || c.cnpj_cpf;
+    
     setFormData(prev => ({
       ...prev,
-      Cliente: c.nome,
-      'Cpf/Cpnj': c.cppf_cnpj,
-      'inscricao_esta/mun': c.inscricao || '', // Puxa IE do cadastro
-      Cidade: c.cidade,
-      Bairro: c.bairro,
-      cep: c.cep || '', // Puxa CEP do cadastro
-      End_Entrega: c.endereco
+      Cliente: nomeExibir,
+      'Cpf/Cpnj': documento,
+      'inscricao_esta/mun': c.inscricao || '', 
+      Cidade: c.cidade || '',
+      Bairro: c.bairro || '',
+      cep: c.cep || '',
+      End_Entrega: c.endereco || ''
     }))
-    setBuscaCli(c.nome)
+    setBuscaCli(nomeExibir)
     setShowCli(false)
   }
 
   const handleSelecionarEquipamento = (e) => {
     setFormData(prev => ({
       ...prev,
-      Marca: e.marca,
-      Modelo: e.modelo,
-      Ano: e.ano,
-      Descricao: e.descricao,
-      Configuracao: e.configuracao,
-      'Niname/NCM': e.finame,
-      Imagem_Equipamento: e.imagem,
-      Qtd_Eqp: '1'
+      Marca: e.marca, Modelo: e.modelo, Ano: e.ano, Descricao: e.descricao,
+      Configuracao: e.configuracao, 'Niname/NCM': e.finame,
+      Imagem_Equipamento: e.imagem, Qtd_Eqp: '1'
     }))
     setBuscaEq(`${e.marca} ${e.modelo}`)
     setShowEq(false)
@@ -101,17 +98,15 @@ export default function FormModal({ onClose, initialData }) {
 
         <div style={f.scroll}>
           <div style={f.vList}>
-            
-            {/* BUSCAS LADO A LADO */}
             <div style={{ display: 'flex', gap: '20px' }}>
               <div style={{ flex: 1, position: 'relative' }}>
                 <label style={f.labelBusca}>BUSCAR CLIENTE (OMIE + MANUAL)</label>
-                <input style={f.search} value={buscaCli} onChange={e => {setBuscaCli(e.target.value); setShowCli(true)}} placeholder="Digite o nome..." />
+                <input style={f.search} value={buscaCli} onChange={e => {setBuscaCli(e.target.value); setShowCli(true)}} placeholder="Nome ou Fantasia..." />
                 {showCli && buscaCli && (
                   <div style={f.dropdown}>
-                    {listaClientes.filter(c => c.nome?.toLowerCase().includes(buscaCli.toLowerCase())).slice(0, 10).map(c => (
+                    {listaClientes.filter(c => (c.nome || c.nome_fantasia || "").toLowerCase().includes(buscaCli.toLowerCase())).slice(0, 10).map(c => (
                       <div key={c.id} style={f.option} onClick={() => handleSelecionarCliente(c)}>
-                        {c.nome} <small style={{color: '#666'}}>({c.cppf_cnpj})</small>
+                        {c.nome || c.nome_fantasia} <small style={{color: '#666'}}>({c.cppf_cnpj || c.cnpj_cpf})</small>
                       </div>
                     ))}
                   </div>
@@ -131,7 +126,6 @@ export default function FormModal({ onClose, initialData }) {
               </div>
             </div>
 
-            {/* GRADE I: DADOS DO CLIENTE */}
             <div style={f.sectionTitle}>I. DADOS DO CLIENTE</div>
             <div style={f.grid}>
               <div style={f.row}>
@@ -153,7 +147,6 @@ export default function FormModal({ onClose, initialData }) {
               </div>
             </div>
 
-            {/* GRADE II: EQUIPAMENTO */}
             <div style={f.sectionTitle}>II. DADOS DO EQUIPAMENTO</div>
             <div style={f.grid}>
               <div style={f.row}>
@@ -161,13 +154,8 @@ export default function FormModal({ onClose, initialData }) {
                 <div style={f.cell}><label style={f.label}>MODELO</label><input value={formData.Modelo} readOnly style={f.input} /></div>
                 <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>ANO</label><input value={formData.Ano} readOnly style={f.input} /></div>
               </div>
-              <div style={{...f.row, borderBottom: 'none'}}>
-                <div style={f.cell}><label style={f.label}>FINAME / NCM</label><input value={formData['Niname/NCM']} readOnly style={f.input} /></div>
-                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>QUANTIDADE</label><input type="number" value={formData.Qtd_Eqp} onChange={e => setFormData({...formData, Qtd_Eqp: e.target.value})} style={f.input} /></div>
-              </div>
             </div>
 
-            {/* GRADE III: FINANCEIRO */}
             <div style={f.sectionTitle}>III. FINANCEIRO</div>
             <div style={f.grid}>
               <div style={f.row}>
@@ -179,7 +167,6 @@ export default function FormModal({ onClose, initialData }) {
                 <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>PRAZO ENTREGA (DIAS)</label><input type="number" onChange={e => setFormData({...formData, Prazo_Entrega: e.target.value})} style={f.input} /></div>
               </div>
             </div>
-
           </div>
         </div>
 
