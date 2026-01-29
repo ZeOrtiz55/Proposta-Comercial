@@ -6,7 +6,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   server:  { 
-    allowedHosts: "https://proposta-comercial-production.up.railway.app/",
+    allowedHosts: true,
     proxy: {
       '/api': {
         target: 'http://localhost:5173',
