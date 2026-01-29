@@ -55,7 +55,7 @@ export const syncOmieToSupabase = async () => {
     }
     return { success: true, count: sincronizados };
   } catch (err) {
-    console.error("Erro na integração Omie:", err);
+    console.error("Erro Omie:", err);
     return { success: false, error: err.message };
   }
 };
