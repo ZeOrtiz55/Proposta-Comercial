@@ -13,9 +13,10 @@ export default function FormModal({ onClose, initialData }) {
   const [formData, setFormData] = useState({
     Cliente: initialData?.cliente || '',
     'Cpf/Cpnj': '',
-    'inscricao_esta/mun': '', // NOVO CAMPO ADICIONADO
+    'inscricao_esta/mun': '', 
     Cidade: '',
     Bairro: '',
+    cep: '', // NOVO CAMPO NO ESTADO
     End_Entrega: '',
     Qtd_Eqp: '1',
     Marca: initialData?.marca || '',
@@ -50,9 +51,10 @@ export default function FormModal({ onClose, initialData }) {
       ...prev,
       Cliente: c.nome,
       'Cpf/Cpnj': c.cppf_cnpj,
-      'inscricao_esta/mun': c.inscricao_esta || '', // Auto-preenche se existir no cadastro
+      'inscricao_esta/mun': c.inscricao || '', // Puxa IE do cadastro
       Cidade: c.cidade,
       Bairro: c.bairro,
+      cep: c.cep || '', // Puxa CEP do cadastro
       End_Entrega: c.endereco
     }))
     setBuscaCli(c.nome)
@@ -141,18 +143,23 @@ export default function FormModal({ onClose, initialData }) {
               <div style={f.row}>
                 <div style={f.cell}><label style={f.label}>CLIENTE</label><input value={formData.Cliente} readOnly style={f.input} /></div>
                 <div style={f.cell}><label style={f.label}>CPF / CNPJ</label><input value={formData['Cpf/Cpnj']} readOnly style={f.input} /></div>
-                {/* CAMPO NOVO: IE */}
                 <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>INSCRIÇÃO ESTADUAL / MUN.</label>
                   <input 
                     value={formData['inscricao_esta/mun']} 
                     onChange={e => setFormData({...formData, 'inscricao_esta/mun': e.target.value})} 
                     style={f.input} 
-                    placeholder="Isento ou Número"
+                    placeholder="Número ou Isento"
                   />
                 </div>
               </div>
-              <div style={{...f.row, borderBottom: 'none'}}>
+              <div style={f.row}>
                 <div style={f.cell}><label style={f.label}>CIDADE</label><input value={formData.Cidade} readOnly style={f.input} /></div>
+                <div style={f.cell}><label style={f.label}>BAIRRO</label><input value={formData.Bairro} readOnly style={f.input} /></div>
+                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>CEP</label>
+                   <input value={formData.cep} onChange={e => setFormData({...formData, cep: e.target.value})} style={f.input} />
+                </div>
+              </div>
+              <div style={{...f.row, borderBottom: 'none'}}>
                 <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>ENDEREÇO ENTREGA</label><input value={formData.End_Entrega} readOnly style={f.input} /></div>
               </div>
             </div>
@@ -171,7 +178,7 @@ export default function FormModal({ onClose, initialData }) {
               </div>
             </div>
 
-            {/* GRADE III: FINANCEIRO E ENTREGA */}
+            {/* GRADE III: FINANCEIRO */}
             <div style={f.sectionTitle}>III. CONDIÇÕES FINANCEIRAS E ENTREGA</div>
             <div style={f.grid}>
               <div style={f.row}>
@@ -195,12 +202,7 @@ export default function FormModal({ onClose, initialData }) {
               <div style={{...f.row, borderBottom: 'none'}}>
                 <div style={f.cell}>
                   <label style={f.label}>VALIDADE DA PROPOSTA (DIAS)</label>
-                  <input 
-                    type="number" 
-                    placeholder="Ex: 7" 
-                    onChange={e => setFormData({...formData, validade: e.target.value})} 
-                    style={{...f.input, color: '#B45309'}} 
-                  />
+                  <input type="number" placeholder="Ex: 7" onChange={e => setFormData({...formData, validade: e.target.value})} style={{...f.input, color: '#B45309'}} />
                 </div>
                 <div style={{...f.cell, borderRight: 'none'}}>
                   <label style={f.label}>CONDIÇÕES DE PAGAMENTO</label>
