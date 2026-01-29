@@ -4,10 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "sirv dist --port $PORT --host 0.0.0.0 --single"
+    "start": "vite preview --host 0.0.0.0"
   },
   "engines": {
     "node": "20.x"
