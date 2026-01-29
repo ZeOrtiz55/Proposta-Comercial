@@ -28,7 +28,7 @@ export const syncOmieToSupabase = async () => {
       const json = await response.json();
       if (!json.clientes_cadastro) break;
 
-      totalPaginas = json.total_de_paginas;
+      totalPaginas = json.total_de_paginas || 1;
 
       const clientesFormatados = json.clientes_cadastro.map(c => ({
         nome: c.nome_fantasia || c.razao_social,
@@ -40,7 +40,7 @@ export const syncOmieToSupabase = async () => {
         cep: c.cep,
         num_telefone: c.telefone1_numero ? `(${c.telefone1_ddd || ''}) ${c.telefone1_numero}` : "",
         email: c.email,
-        id_omie: c.codigo_cliente_omie // Certifique-se de ter essa coluna no Supabase
+        id_omie: c.codigo_cliente_omie 
       }));
 
       const { error } = await supabase
@@ -50,10 +50,12 @@ export const syncOmieToSupabase = async () => {
       if (error) throw error;
 
       sincronizados += clientesFormatados.length;
+      if (pagina >= totalPaginas) break;
       pagina++;
     }
     return { success: true, count: sincronizados };
   } catch (err) {
+    console.error("Erro Omie:", err);
     return { success: false, error: err.message };
   }
 };
