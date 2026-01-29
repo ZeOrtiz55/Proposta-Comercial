@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
+import { supabaseOmie } from './supabaseOmieClient' // Projeto dos Clientes Omie
 
 export default function FormModal({ onClose, initialData }) {
   const [loading, setLoading] = useState(false)
@@ -14,32 +15,18 @@ export default function FormModal({ onClose, initialData }) {
     Cliente: initialData?.cliente || '',
     'Cpf/Cpnj': '',
     'inscricao_esta/mun': '', 
-    Cidade: '',
-    Bairro: '',
-    cep: '',
-    End_Entrega: '',
-    Qtd_Eqp: '1',
-    Marca: initialData?.marca || '',
-    Modelo: initialData?.modelo || '',
-    'Niname/NCM': '',
-    Configuracao: '',
-    Descricao: '',
-    Ano: '',
-    Prazo_Entrega: '',
-    Valor_Total: '',
-    Valor_A_Vista: '',
-    Condicoes: '',
-    Tipo_Entrega: 'FOB',
-    validade: '',
-    Imagem_Equipamento: '',
-    status: 'Enviar Proposta',
-    id_fabrica_ref: initialData?.id || ''
+    Cidade: '', Bairro: '', cep: '', End_Entrega: '',
+    Marca: initialData?.marca || '', Modelo: initialData?.modelo || '',
+    status: 'Enviar Proposta', id_fabrica_ref: initialData?.id || ''
   })
 
   useEffect(() => {
     async function carregarDados() {
-      const { data: c } = await supabase.from('Clientes').select('*')
+      // BUSCA CLIENTES NO OUTRO PROJETO
+      const { data: c } = await supabaseOmie.from('Clientes').select('*')
+      // BUSCA EQUIPAMENTOS NO PROJETO ATUAL
       const { data: e } = await supabase.from('Equipamentos').select('*')
+      
       if (c) setListaClientes(c)
       if (e) setListaEquipamentos(e)
     }
@@ -47,8 +34,9 @@ export default function FormModal({ onClose, initialData }) {
   }, [])
 
   const handleSelecionarCliente = (c) => {
-    const nomeExibir = c.nome || c.nome_fantasia || c.razao_social;
-    const documento = c.cppf_cnpj || c.cnpj_cpf;
+    // Mapeando as colunas exatas do CSV que você mandou (nome_fantasia, cnpj_cpf, etc)
+    const nomeExibir = c.nome_fantasia || c.razao_social || c.nome;
+    const documento = c.cnpj_cpf || c.cppf_cnpj;
     
     setFormData(prev => ({
       ...prev,
@@ -58,36 +46,11 @@ export default function FormModal({ onClose, initialData }) {
       Cidade: c.cidade || '',
       Bairro: c.bairro || '',
       cep: c.cep || '',
-      End_Entrega: c.endereco || ''
+      End_Entrega: c.endereco ? `${c.endereco}, ${c.numero || ''}` : ''
     }))
     setBuscaCli(nomeExibir)
     setShowCli(false)
   }
-
-  const handleSelecionarEquipamento = (e) => {
-    setFormData(prev => ({
-      ...prev,
-      Marca: e.marca, Modelo: e.modelo, Ano: e.ano, Descricao: e.descricao,
-      Configuracao: e.configuracao, 'Niname/NCM': e.finame,
-      Imagem_Equipamento: e.imagem, Qtd_Eqp: '1'
-    }))
-    setBuscaEq(`${e.marca} ${e.modelo}`)
-    setShowEq(false)
-  }
-
-  const handleSalvar = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    const { error } = await supabase.from('Formulario').insert([formData])
-    if (!error) {
-      alert("PROPOSTA GERADA COM SUCESSO!")
-      window.location.reload()
-    } else {
-      alert("Erro ao salvar: " + error.message)
-    }
-    setLoading(false)
-  }
-
   return (
     <div style={f.overlay}>
       <div style={f.modal}>

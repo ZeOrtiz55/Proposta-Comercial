@@ -1,34 +1,28 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
+import { supabaseOmie } from './supabaseOmieClient'
 
 export default function FactoryFormModal({ onClose }) {
   const [loading, setLoading] = useState(false)
   const [listaClientes, setListaClientes] = useState([])
-  const [listaEquipamentos, setListaEquipamentos] = useState([])
   const [buscaCli, setBuscaCli] = useState('')
-  const [buscaEq, setBuscaEq] = useState('')
   const [showCli, setShowCli] = useState(false)
-  const [showEq, setShowEq] = useState(false)
-
-  const [formData, setFormData] = useState({
-    vendedor_fab: '', cliente: '', marca: '', modelo: '',
-    maq_valor: '', valor_final: '', status: 'Proposta solicitada'
-  })
+  
+  // ... estados de equipamentos e formData
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: clis } = await supabase.from('Clientes').select('*')
-      const { data: equis } = await supabase.from('Equipamentos').select('*')
+      // BUSCA NO PROJETO EXTERNO
+      const { data: clis } = await supabaseOmie.from('Clientes').select('*')
       if (clis) setListaClientes(clis)
-      if (equis) setListaEquipamentos(equis)
     }
     fetchData()
   }, [])
 
   const selecionarCliente = (c) => {
-    const nomeExibir = c.nome || c.nome_fantasia || c.razao_social;
-    setFormData({ ...formData, cliente: nomeExibir })
-    setBuscaCli(nomeExibir)
+    const nome = c.nome_fantasia || c.razao_social || c.nome;
+    setFormData({ ...formData, cliente: nome })
+    setBuscaCli(nome)
     setShowCli(false)
   }
 
