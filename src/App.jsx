@@ -11,7 +11,7 @@ import ClientEditModal from './ClientEditModal'
 import EquipamentoEditModal from './EquipamentoEditModal'
 
 export default function App() {
-  const [view, setView] = useState('fabrica')
+ const [view, setView] = useState('clientes')
   const [modals, setModals] = useState({ 
     newFab: false, editFab: false, newCli: false, editCli: false, 
     client: false, equip: false, searchEditClient: false, searchEditEquip: false 

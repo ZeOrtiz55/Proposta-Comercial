@@ -30,7 +30,7 @@ export default function FormModal({ onClose, initialData }) {
     Valor_Total: '',
     Valor_A_Vista: '',
     Condicoes: '',
-    Tipo_Entrega: 'FOB',
+    // Tipo_Entrega REMOVIDO PARA CORRIGIR O ERRO DE COLUNA
     validade: '',
     Imagem_Equipamento: '',
     status: 'Enviar Proposta',
@@ -87,7 +87,10 @@ export default function FormModal({ onClose, initialData }) {
   const handleSalvar = async (e) => {
     e.preventDefault()
     setLoading(true)
+    
+    // Removemos qualquer campo que não exista na tabela para evitar erros
     const { error } = await supabase.from('Formulario').insert([formData])
+    
     if (!error) {
       alert("PROPOSTA GERADA COM SUCESSO!")
       window.location.reload()
@@ -108,7 +111,6 @@ export default function FormModal({ onClose, initialData }) {
         <div style={f.scroll}>
           <form onSubmit={handleSalvar} style={f.vList}>
             
-            {/* BUSCAS LADO A LADO */}
             <div style={{ display: 'flex', gap: '20px' }}>
               <div style={{ flex: 1, position: 'relative' }}>
                 <label style={f.labelBusca}>1. BUSCAR CLIENTE (OMIE + MANUAL)</label>
@@ -146,7 +148,6 @@ export default function FormModal({ onClose, initialData }) {
               </center>
             )}
 
-            {/* GRADE I: CLIENTE */}
             <div style={f.sectionTitle}>I. DADOS DO CLIENTE</div>
             <div style={f.grid}>
               <div style={f.row}>
@@ -168,7 +169,6 @@ export default function FormModal({ onClose, initialData }) {
               </div>
             </div>
 
-            {/* GRADE II: EQUIPAMENTO */}
             <div style={f.sectionTitle}>II. DADOS DO EQUIPAMENTO</div>
             <div style={f.grid}>
               <div style={f.row}>
@@ -187,7 +187,6 @@ export default function FormModal({ onClose, initialData }) {
               </div>
             </div>
 
-            {/* GRADE III: FINANCEIRO */}
             <div style={f.sectionTitle}>III. CONDIÇÕES FINANCEIRAS E ENTREGA</div>
             <div style={f.grid}>
               <div style={f.row}>
@@ -197,16 +196,12 @@ export default function FormModal({ onClose, initialData }) {
               <div style={f.row}>
                 <div style={f.cell}><label style={f.label}>PRAZO ENTREGA (DIAS)</label><input type="number" placeholder="Ex: 30" onChange={e => setFormData({...formData, Prazo_Entrega: e.target.value})} style={f.input} /></div>
                 <div style={{...f.cell, borderRight: 'none'}}>
-                  <label style={f.label}>TIPO DE ENTREGA</label>
-                  <select value={formData.Tipo_Entrega} onChange={e => setFormData({...formData, Tipo_Entrega: e.target.value})} style={{...f.input, cursor: 'pointer', appearance: 'none', background: 'none'}}>
-                    <option value="FOB">FOB (CLIENTE RETIRA)</option>
-                    <option value="CIF">CIF (ENTREGA NA PROPRIEDADE)</option>
-                  </select>
+                  <label style={f.label}>VALIDADE PROPOSTA (DIAS)</label>
+                  <input type="number" placeholder="Ex: 7" onChange={e => setFormData({...formData, validade: e.target.value})} style={{...f.input, color: '#B45309'}} />
                 </div>
               </div>
               <div style={{...f.row, borderBottom: 'none'}}>
-                <div style={f.cell}><label style={f.label}>VALIDADE PROPOSTA (DIAS)</label><input type="number" placeholder="Ex: 7" onChange={e => setFormData({...formData, validade: e.target.value})} style={{...f.input, color: '#B45309'}} /></div>
-                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>CONDIÇÕES DE PAGAMENTO</label><input placeholder="Ex: Financiamento / Banco" onChange={e => setFormData({...formData, Condicoes: e.target.value})} style={f.input} /></div>
+                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>CONDIÇÕES DE PAGAMENTO / OBSERVAÇÕES</label><input placeholder="Ex: Financiamento / Banco" onChange={e => setFormData({...formData, Condicoes: e.target.value})} style={f.input} /></div>
               </div>
             </div>
 
