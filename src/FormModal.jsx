@@ -4,8 +4,11 @@ import { supabaseOmie } from './supabaseOmieClient'
 
 export default function FormModal({ onClose, initialData }) {
   const [loading, setLoading] = useState(false)
+  const [tipoMaq, setTipoMaq] = useState('implemento') 
+  const [temValidade, setTemValidade] = useState(true)
   const [listaClientes, setListaClientes] = useState([])
   const [listaEquipamentos, setListaEquipamentos] = useState([])
+  const [listaTratores, setListaTratores] = useState([])
   const [buscaCli, setBuscaCli] = useState(initialData?.cliente || '')
   const [buscaEq, setBuscaEq] = useState(initialData?.modelo || '')
   const [showCli, setShowCli] = useState(false)
@@ -17,87 +20,145 @@ export default function FormModal({ onClose, initialData }) {
     'inscricao_esta/mun': '', 
     Cidade: '',
     Bairro: '',
-    cep: '',
+    cep: '', 
     End_Entrega: '',
     Qtd_Eqp: '1',
     Marca: initialData?.marca || '',
     Modelo: initialData?.modelo || '',
     'Niname/NCM': '',
-    Configuracao: '',
-    Descricao: '',
     Ano: '',
     Prazo_Entrega: '',
     Valor_Total: '',
     Valor_A_Vista: '',
     Condicoes: '',
-    // Tipo_Entrega REMOVIDO PARA CORRIGIR O ERRO DE COLUNA
     validade: '',
     Imagem_Equipamento: '',
     status: 'Enviar Proposta',
-    id_fabrica_ref: initialData?.id || ''
+    id_fabrica_ref: initialData?.id || '',
+    // Campos técnicos para a tabela Formulario (com final _trator)
+    motor_trator: '', 
+    transmissao_diant_trator: '', 
+    bomb_inje_trator: '', 
+    bomb_hidra_trator: '',
+    embreagem_trator: '', 
+    capacit_comb_trator: '', 
+    cambio_trator: '', 
+    reversor_trator: '',
+    trasmissao_tras_trator: '', 
+    oleo_motor_trator: '', 
+    oleo_trasmissao_trator: '',
+    diant_min_max_trator: '', 
+    tras_min_max_trator: ''
   })
 
   useEffect(() => {
     async function carregarDados() {
       try {
-        const { data: c } = await supabaseOmie.from('Clientes').select('*')
+        // FUNÇÃO PARA BUSCAR TODOS OS REGISTROS (CONTORNA LIMITE DE 1000)
+        const fetchAll = async (tableName) => {
+          let allData = []
+          let error = null
+          let from = 0
+          const step = 1000
+          
+          while (true) {
+            const { data, error: err } = await supabase
+              .from(tableName)
+              .select('*')
+              .range(from, from + step - 1)
+            
+            if (err) { error = err; break; }
+            if (!data || data.length === 0) break;
+            
+            allData = [...allData, ...data]
+            if (data.length < step) break;
+            from += step
+          }
+          return { data: allData, error }
+        }
+
+        // BUSCA CLIENTES NAS DUAS TABELAS
+        const { data: cOmie } = await fetchAll('Clientes_Omie')
+        const { data: cManual } = await fetchAll('Cliente_Manual')
+        
+        // BUSCA EQUIPAMENTOS E TRATORES
         const { data: e } = await supabase.from('Equipamentos').select('*')
-        if (c) setListaClientes(c)
-        if (e) setListaEquipamentos(e)
-      } catch (err) {
-        console.error("Erro ao carregar dados:", err)
-      }
+        const { data: t } = await supabase.from('cad_trator').select('*')
+        
+        // JUNTA E PADRONIZA AS LISTAS DE CLIENTES
+        const todosClientes = [
+          ...(cOmie || []).map(c => ({ ...c, source: 'OMIE' })),
+          ...(cManual || []).map(c => ({ ...c, source: 'MANUAL' }))
+        ]
+        
+        setListaClientes(todosClientes)
+        setListaEquipamentos(e || [])
+        setListaTratores(t || [])
+      } catch (err) { console.error("Erro ao carregar dados:", err) }
     }
     carregarDados()
   }, [])
 
   const handleSelecionarCliente = (c) => {
-    const nome = c.nome_fantasia || c.razao_social || c.nome || 'Sem Nome'
-    const doc = c.cnpj_cpf || c.cppf_cnpj || ''
+    // Normaliza os nomes das colunas que são diferentes entre Omie e Manual
+    const nome = c.nome || 'Sem Nome'
+    const doc = c['cpf/cnpj'] || c.cppf_cnpj || ''
+    const ie = c['inscricao_estadual/municipal'] || c.inscricao || ''
+    
     setFormData(prev => ({
       ...prev,
       Cliente: nome,
       'Cpf/Cpnj': doc,
-      'inscricao_esta/mun': c.inscricao || '', 
+      'inscricao_esta/mun': ie, 
       Cidade: c.cidade || '',
       Bairro: c.bairro || '',
-      cep: c.cep || '',
-      End_Entrega: c.endereco ? `${c.endereco}, ${c.numero || ''}` : ''
+      End_Entrega: c.endereco || ''
     }))
-    setBuscaCli(nome)
+    setBuscaCli(nome); 
     setShowCli(false)
   }
 
-  const handleSelecionarEquipamento = (e) => {
-    setFormData(prev => ({
-      ...prev,
-      Marca: e.marca,
-      Modelo: e.modelo,
-      Ano: e.ano,
-      Descricao: e.descricao,
-      Configuracao: e.configuracao,
-      'Niname/NCM': e.finame,
-      Imagem_Equipamento: e.imagem,
-      Qtd_Eqp: '1'
-    }))
-    setBuscaEq(`${e.marca} ${e.modelo}`)
-    setShowEq(false)
+  const handleSelecionarEquipamento = (item) => {
+    if (tipoMaq === 'implemento') {
+      setFormData(prev => ({
+        ...prev,
+        Marca: item.marca, Modelo: item.modelo, Ano: item.ano,
+        'Niname/NCM': item.finame, Imagem_Equipamento: item.imagem, Qtd_Eqp: '1'
+      }))
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        Marca: item.marca, Modelo: item.modelo, Ano: item.ano || '',
+        'Niname/NCM': item['finame/ncm'] || '', Imagem_Equipamento: item.imagem,
+        motor_trator: item.motor || '',
+        transmissao_diant_trator: item.transmissao_diant || '',
+        bomb_inje_trator: item.bomb_inje || '',
+        bomb_hidra_trator: item.bomb_hidra || '',
+        embreagem_trator: item.embreagem || '',
+        capacit_comb_trator: item.capacit_comb || '',
+        cambio_trator: item.cambio || '',
+        reversor_trator: item.reversor || '',
+        trasmissao_tras_trator: item.trasmissao_tras || '',
+        oleo_motor_trator: item.oleo_motor || '',
+        oleo_trasmissao_trator: item.oleo_trasmissao || '',
+        diant_min_max_trator: item.diant_min_max || '',
+        tras_min_max_trator: item.tras_min_max || '',
+        Qtd_Eqp: '1'
+      }))
+    }
+    setBuscaEq(`${item.marca} ${item.modelo}`); setShowEq(false)
   }
 
   const handleSalvar = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    
-    // Removemos qualquer campo que não exista na tabela para evitar erros
-    const { error } = await supabase.from('Formulario').insert([formData])
-    
-    if (!error) {
-      alert("PROPOSTA GERADA COM SUCESSO!")
-      window.location.reload()
-    } else {
-      alert("Erro ao salvar: " + error.message)
-      setLoading(false)
-    }
+    e.preventDefault(); setLoading(true)
+    const payload = { ...formData };
+    delete payload.cep; 
+    delete payload.Tipo_Entrega;
+    if (!temValidade) payload.validade = 'Sem validade';
+
+    const { error } = await supabase.from('Formulario').insert([payload])
+    if (!error) { alert("PROPOSTA GERADA!"); window.location.reload() }
+    else { alert("Erro: " + error.message); setLoading(false) }
   }
 
   return (
@@ -110,42 +171,60 @@ export default function FormModal({ onClose, initialData }) {
 
         <div style={f.scroll}>
           <form onSubmit={handleSalvar} style={f.vList}>
-            
             <div style={{ display: 'flex', gap: '20px' }}>
               <div style={{ flex: 1, position: 'relative' }}>
                 <label style={f.labelBusca}>1. BUSCAR CLIENTE (OMIE + MANUAL)</label>
-                <input style={f.search} value={buscaCli} onChange={e => {setBuscaCli(e.target.value); setShowCli(true)}} placeholder="Digite o nome..." />
-                {showCli && buscaCli && (
+                <input style={f.search} value={buscaCli} onFocus={() => setShowCli(true)} onChange={e => {setBuscaCli(e.target.value); setShowCli(true)}} placeholder="Digite nome ou CPF..." />
+                {showCli && (
                   <div style={f.dropdown}>
-                    {listaClientes.filter(c => (c.nome_fantasia || c.nome || "").toLowerCase().includes(buscaCli.toLowerCase())).slice(0, 10).map(c => (
-                      <div key={c.id} style={f.option} onClick={() => handleSelecionarCliente(c)}>
-                        {c.nome_fantasia || c.nome} <small style={{color: '#666'}}>({c.cnpj_cpf || c.cppf_cnpj})</small>
-                      </div>
-                    ))}
+                    {listaClientes.filter(c => {
+                        const termo = buscaCli.toLowerCase();
+                        return !buscaCli || (
+                          (c.nome || "").toLowerCase().includes(termo) || 
+                          (c['cpf/cnpj'] || "").toLowerCase().includes(termo) ||
+                          (c.cppf_cnpj || "").toLowerCase().includes(termo)
+                        )
+                      }).slice(0, 50).map((c, idx) => (
+                        <div key={`${c.id}-${idx}`} style={f.option} onClick={() => handleSelecionarCliente(c)}>
+                          <div style={{fontWeight: 'bold'}}>{c.nome}</div>
+                          <div style={{fontSize: '10px', color: '#666'}}>
+                            {c['cpf/cnpj'] || c.cppf_cnpj} | <span style={{color: c.source === 'OMIE' ? 'blue' : 'green'}}>{c.source}</span>
+                          </div>
+                        </div>
+                      ))}
                   </div>
                 )}
               </div>
 
               <div style={{ flex: 1, position: 'relative' }}>
-                <label style={f.labelBusca}>2. SELECIONAR MÁQUINA</label>
-                <input style={f.search} value={buscaEq} onChange={e => {setBuscaEq(e.target.value); setShowEq(true)}} placeholder="Marca ou Modelo..." />
-                {showEq && buscaEq && (
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                  <label style={f.labelBusca}>2. SELECIONAR PRODUTO</label>
+                  <select value={tipoMaq} onChange={(e) => {setTipoMaq(e.target.value); setBuscaEq('');}}
+                    style={{fontSize: '10px', fontWeight: '900', border: '1px solid #000', borderRadius: '4px', cursor: 'pointer'}}>
+                    <option value="implemento">IMPLEMENTO</option>
+                    <option value="trator">TRATOR</option>
+                  </select>
+                </div>
+                <input style={{...f.search, backgroundColor: tipoMaq === 'trator' ? '#1e293b' : '#000'}} 
+                  value={buscaEq} onFocus={() => setShowEq(true)} onChange={e => {setBuscaEq(e.target.value); setShowEq(true)}} 
+                  placeholder={tipoMaq === 'trator' ? "Pesquisar Trator..." : "Pesquisar Implemento..."} 
+                />
+                {showEq && (
                   <div style={f.dropdown}>
-                    {listaEquipamentos.filter(e => (e.modelo || "").toLowerCase().includes(buscaEq.toLowerCase())).map(e => (
-                      <div key={e.id} style={f.option} onClick={() => handleSelecionarEquipamento(e)}>{e.marca} {e.modelo}</div>
-                    ))}
+                    {(tipoMaq === 'implemento' ? listaEquipamentos : listaTratores)
+                      .filter(e => {
+                        const termo = buscaEq.toLowerCase();
+                        return !buscaEq || (e.marca || "").toLowerCase().includes(termo) || (e.modelo || "").toLowerCase().includes(termo)
+                      }).slice(0, 30).map(e => (
+                        <div key={e.id} style={f.option} onClick={() => handleSelecionarEquipamento(e)}>{e.marca} {e.modelo}</div>
+                      ))}
                   </div>
                 )}
               </div>
             </div>
 
             {formData.Imagem_Equipamento && (
-              <center>
-                <div style={f.imgBox}>
-                  <label style={f.label}>FOTO DO EQUIPAMENTO</label><br/>
-                  <img src={formData.Imagem_Equipamento} style={f.preview} alt="Equipamento" />
-                </div>
-              </center>
+              <center><div style={f.imgBox}><label style={f.label}>FOTO SELECIONADA</label><br/><img src={formData.Imagem_Equipamento} style={f.preview} alt="Equipamento" /></div></center>
             )}
 
             <div style={f.sectionTitle}>I. DADOS DO CLIENTE</div>
@@ -153,66 +232,82 @@ export default function FormModal({ onClose, initialData }) {
               <div style={f.row}>
                 <div style={f.cell}><label style={f.label}>CLIENTE</label><input value={formData.Cliente} readOnly style={f.input} /></div>
                 <div style={f.cell}><label style={f.label}>CPF / CNPJ</label><input value={formData['Cpf/Cpnj']} readOnly style={f.input} /></div>
-                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>INSCRIÇÃO ESTADUAL / MUN.</label>
-                  <input value={formData['inscricao_esta/mun']} onChange={e => setFormData({...formData, 'inscricao_esta/mun': e.target.value})} style={f.input} placeholder="Número ou Isento" />
-                </div>
+                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>I.E. / MUN.</label><input value={formData['inscricao_esta/mun']} onChange={e => setFormData({...formData, 'inscricao_esta/mun': e.target.value})} style={f.input} /></div>
               </div>
               <div style={f.row}>
                 <div style={f.cell}><label style={f.label}>CIDADE</label><input value={formData.Cidade} readOnly style={f.input} /></div>
                 <div style={f.cell}><label style={f.label}>BAIRRO</label><input value={formData.Bairro} readOnly style={f.input} /></div>
-                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>CEP</label>
-                  <input value={formData.cep} onChange={e => setFormData({...formData, cep: e.target.value})} style={f.input} placeholder="00000-000" />
-                </div>
+                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>CEP</label><input value={formData.cep} readOnly style={{...f.input, color: '#999'}} /></div>
               </div>
               <div style={{...f.row, borderBottom: 'none'}}>
                 <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>ENDEREÇO COMPLETO</label><input value={formData.End_Entrega} readOnly style={f.input} /></div>
               </div>
             </div>
 
-            <div style={f.sectionTitle}>II. DADOS DO EQUIPAMENTO</div>
+            <div style={f.sectionTitle}>II. DADOS DO {tipoMaq.toUpperCase()}</div>
             <div style={f.grid}>
               <div style={f.row}>
                 <div style={f.cell}><label style={f.label}>MARCA</label><input value={formData.Marca} readOnly style={f.input} /></div>
                 <div style={f.cell}><label style={f.label}>MODELO</label><input value={formData.Modelo} readOnly style={f.input} /></div>
-                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>ANO</label><input value={formData.Ano} readOnly style={f.input} /></div>
+                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>ANO</label><input value={formData.Ano} onChange={e => setFormData({...formData, Ano: e.target.value})} style={f.input} /></div>
               </div>
-              <div style={f.row}>
-                <div style={f.cell}><label style={f.label}>FINAME / NCM</label><input value={formData['Niname/NCM']} readOnly style={f.input} /></div>
-                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>QUANTIDADE</label><input type="number" value={formData.Qtd_Eqp} onChange={e => setFormData({...formData, Qtd_Eqp: e.target.value})} style={f.input} /></div>
-              </div>
-              <div style={{...f.row, borderBottom: 'none'}}>
-                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>CONFIGURAÇÃO / DESCRIÇÃO TÉCNICA</label>
-                  <textarea value={formData.Configuracao || formData.Descricao} onChange={e => setFormData({...formData, Configuracao: e.target.value})} style={f.textarea} placeholder="Detalhes técnicos..." />
+
+              {tipoMaq === 'trator' ? (
+                <>
+                  <div style={f.row}>
+                    <div style={f.cell}><label style={f.label}>MOTOR</label><input value={formData.motor_trator} onChange={e => setFormData({...formData, motor_trator: e.target.value})} style={f.input} /></div>
+                    <div style={f.cell}><label style={f.label}>BOMBA INJETORA</label><input value={formData.bomb_inje_trator} onChange={e => setFormData({...formData, bomb_inje_trator: e.target.value})} style={f.input} /></div>
+                    <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>BOMBA HIDRÁULICA</label><input value={formData.bomb_hidra_trator} onChange={e => setFormData({...formData, bomb_hidra_trator: e.target.value})} style={f.input} /></div>
+                  </div>
+                  <div style={f.row}>
+                    <div style={f.cell}><label style={f.label}>CÂMBIO</label><input value={formData.cambio_trator} onChange={e => setFormData({...formData, cambio_trator: e.target.value})} style={f.input} /></div>
+                    <div style={f.cell}><label style={f.label}>REVERSOR</label><input value={formData.reversor_trator} onChange={e => setFormData({...formData, reversor_trator: e.target.value})} style={f.input} /></div>
+                    <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>EMBREAGEM</label><input value={formData.embreagem_trator} onChange={e => setFormData({...formData, embreagem_trator: e.target.value})} style={f.input} /></div>
+                  </div>
+                  <div style={f.row}>
+                    <div style={f.cell}><label style={f.label}>TRANS. DIANT.</label><input value={formData.transmissao_diant_trator} onChange={e => setFormData({...formData, transmissao_diant_trator: e.target.value})} style={f.input} /></div>
+                    <div style={f.cell}><label style={f.label}>TRANS. TRAS.</label><input value={formData.trasmissao_tras_trator} onChange={e => setFormData({...formData, trasmissao_tras_trator: e.target.value})} style={f.input} /></div>
+                    <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>CAP. COMB.</label><input value={formData.capacit_comb_trator} onChange={e => setFormData({...formData, capacit_comb_trator: e.target.value})} style={f.input} /></div>
+                  </div>
+                  <div style={f.row}>
+                    <div style={f.cell}><label style={f.label}>ÓLEO MOTOR</label><input value={formData.oleo_motor_trator} onChange={e => setFormData({...formData, oleo_motor_trator: e.target.value})} style={f.input} /></div>
+                    <div style={f.cell}><label style={f.label}>ÓLEO TRANS.</label><input value={formData.oleo_trasmissao_trator} onChange={e => setFormData({...formData, oleo_trasmissao_trator: e.target.value})} style={f.input} /></div>
+                    <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>FINAME / NCM</label><input value={formData['Niname/NCM']} onChange={e => setFormData({...formData, 'Niname/NCM': e.target.value})} style={f.input} /></div>
+                  </div>
+                  <div style={{...f.row, borderBottom: 'none'}}>
+                    <div style={f.cell}><label style={f.label}>DIANTEIRA MÍN/MÁX</label><input value={formData.diant_min_max_trator} onChange={e => setFormData({...formData, diant_min_max_trator: e.target.value})} style={f.input} /></div>
+                    <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>TRASEIRA MÍN/MÁX</label><input value={formData.tras_min_max_trator} onChange={e => setFormData({...formData, tras_min_max_trator: e.target.value})} style={f.input} /></div>
+                  </div>
+                </>
+              ) : (
+                <div style={{...f.row, borderBottom: 'none'}}>
+                  <div style={f.cell}><label style={f.label}>FINAME / NCM</label><input value={formData['Niname/NCM']} onChange={e => setFormData({...formData, 'Niname/NCM': e.target.value})} style={f.input} /></div>
+                  <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>QUANTIDADE</label><input type="number" value={formData.Qtd_Eqp} onChange={e => setFormData({...formData, Qtd_Eqp: e.target.value})} style={f.input} /></div>
                 </div>
-              </div>
+              )}
             </div>
 
-            <div style={f.sectionTitle}>III. CONDIÇÕES FINANCEIRAS E ENTREGA</div>
+            <div style={f.sectionTitle}>III. CONDIÇÕES FINANCEIRAS</div>
             <div style={f.grid}>
               <div style={f.row}>
-                <div style={f.cell}><label style={f.label}>VALOR TOTAL (R$)</label><input type="number" step="0.01" placeholder="0.00" onChange={e => setFormData({...formData, Valor_Total: e.target.value})} style={{...f.input, color: 'red'}} /></div>
-                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>VALOR À VISTA (R$)</label><input type="number" step="0.01" placeholder="0.00" onChange={e => setFormData({...formData, Valor_A_Vista: e.target.value})} style={{...f.input, color: 'green'}} /></div>
+                <div style={f.cell}><label style={f.label}>VALOR TOTAL (R$)</label><input type="number" step="0.01" value={formData.Valor_Total} onChange={e => setFormData({...formData, Valor_Total: e.target.value})} style={{...f.input, color: 'red'}} /></div>
+                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>VALOR À VISTA (R$)</label><input type="number" step="0.01" value={formData.Valor_A_Vista} onChange={e => setFormData({...formData, Valor_A_Vista: e.target.value})} style={{...f.input, color: 'green'}} /></div>
               </div>
               <div style={f.row}>
-                <div style={f.cell}><label style={f.label}>PRAZO ENTREGA (DIAS)</label><input type="number" placeholder="Ex: 30" onChange={e => setFormData({...formData, Prazo_Entrega: e.target.value})} style={f.input} /></div>
-                <div style={{...f.cell, borderRight: 'none'}}>
-                  <label style={f.label}>VALIDADE PROPOSTA (DIAS)</label>
-                  <input type="number" placeholder="Ex: 7" onChange={e => setFormData({...formData, validade: e.target.value})} style={{...f.input, color: '#B45309'}} />
-                </div>
+                <div style={f.cell}><label style={f.label}>PRAZO ENTREGA (DIAS)</label><input type="number" value={formData.Prazo_Entrega} onChange={e => setFormData({...formData, Prazo_Entrega: e.target.value})} style={f.input} /></div>
+                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>TIPO DE ENTREGA</label><select value={formData.Tipo_Entrega} onChange={e => setFormData({...formData, Tipo_Entrega: e.target.value})} style={{...f.input, cursor: 'pointer'}}><option value="FOB">FOB (CLIENTE RETIRA)</option><option value="CIF">CIF (ENTREGA NA PROPRIEDADE)</option></select></div>
               </div>
-              <div style={{...f.row, borderBottom: 'none'}}>
-                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>CONDIÇÕES DE PAGAMENTO / OBSERVAÇÕES</label><input placeholder="Ex: Financiamento / Banco" onChange={e => setFormData({...formData, Condicoes: e.target.value})} style={f.input} /></div>
+              <div style={f.row}>
+                <div style={f.cell}><label style={f.label}>TEM VALIDADE?</label><select value={temValidade} onChange={e => setTemValidade(e.target.value === 'true')} style={{...f.input, cursor: 'pointer', fontWeight: '900', color: temValidade ? '#B45309' : '#666'}}><option value="true">SIM</option><option value="false">NÃO</option></select></div>
+                <div style={{...f.cell, borderRight: 'none'}}>{temValidade ? (<><label style={f.label}>DIAS DE VALIDADE</label><input type="number" value={formData.validade} onChange={e => setFormData({...formData, validade: e.target.value})} style={{...f.input, color: '#B45309'}} /></>) : (<div style={{color: '#999', fontSize: '11px', fontWeight: 'bold', paddingTop: '10px'}}>SEM VALIDADE</div>)}</div>
+              </div>
+              <div style={{...f.row, borderTop: '1px solid #000', borderBottom: 'none'}}>
+                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>CONDIÇÕES DE PAGAMENTO</label><input value={formData.Condicoes} onChange={e => setFormData({...formData, Condicoes: e.target.value})} style={f.input} /></div>
               </div>
             </div>
-
           </form>
         </div>
-
-        <div style={f.footer}>
-          <button onClick={handleSalvar} disabled={loading} style={f.btnMain}>
-            {loading ? 'GERANDO PROPOSTA...' : 'CONFIRMAR E GERAR PROPOSTA'}
-          </button>
-        </div>
+        <div style={f.footer}><button onClick={handleSalvar} disabled={loading} style={f.btnMain}>{loading ? 'GERANDO...' : 'CONFIRMAR E GERAR PROPOSTA'}</button></div>
       </div>
     </div>
   )
@@ -226,17 +321,16 @@ const f = {
   vList: { display: 'flex', flexDirection: 'column', gap: '20px' },
   labelBusca: { fontSize: '11px', fontWeight: '900', color: '#000', marginBottom: '8px', display: 'block' },
   search: { width: '100%', padding: '14px', backgroundColor: '#000', color: '#fff', borderRadius: '10px', border: 'none', fontSize: '14px', fontWeight: '700' },
-  dropdown: { position: 'absolute', top: '75px', left: 0, right: 0, backgroundColor: '#fff', border: '2px solid #000', zIndex: 100, maxHeight: '200px', overflowY: 'auto', borderRadius: '10px' },
+  dropdown: { position: 'absolute', top: '75px', left: 0, right: 0, backgroundColor: '#fff', border: '2px solid #000', zIndex: 100, maxHeight: '300px', overflowY: 'auto', borderRadius: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' },
   option: { padding: '12px', cursor: 'pointer', borderBottom: '1px solid #eee', color: '#000', fontWeight: '700', fontSize: '13px' },
   imgBox: { backgroundColor: '#fff', padding: '10px', border: '2px solid #000', borderRadius: '10px', display: 'inline-block' },
   preview: { height: '140px', borderRadius: '5px', border: '1px solid #000' },
   sectionTitle: { fontSize: '12px', fontWeight: '900', color: '#EF4444', textTransform: 'uppercase' },
   grid: { border: '2px solid #000', backgroundColor: '#fff', borderRadius: '10px', overflow: 'hidden' },
   row: { display: 'flex', borderBottom: '1px solid #000' },
-  cell: { flex: 1, padding: '12px', borderRight: '1px solid #000', display: 'flex', flexDirection: 'column' },
+  cell: { flex: 1, padding: '12px', borderRight: '1px solid #111', display: 'flex', flexDirection: 'column' },
   label: { fontSize: '9px', fontWeight: '900', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' },
   input: { border: 'none', outline: 'none', width: '100%', fontSize: '14px', fontWeight: '700', background: 'none' },
-  textarea: { border: 'none', outline: 'none', fontSize: '14px', width: '100%', minHeight: '80px', background: 'none', resize: 'none', fontWeight: '700' },
   footer: { padding: '20px 30px', backgroundColor: '#fff', borderTop: '3px solid #000' },
   btnMain: { width: '100%', padding: '18px', backgroundColor: '#EF4444', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: '900', cursor: 'pointer', fontSize: '16px' },
   closeBtn: { border: 'none', background: 'none', fontWeight: '900', cursor: 'pointer', color: '#000' }

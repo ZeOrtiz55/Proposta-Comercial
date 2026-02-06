@@ -7,14 +7,19 @@ import FactoryFormModal from './FactoryFormModal'
 import FactoryEditModal from './FactoryEditModal'
 import ClientModal from './ClientModal'
 import EquipamentoModal from './EquipamentoModal'
+import TratorModal from './TratorModal' 
 import ClientEditModal from './ClientEditModal'
 import EquipamentoEditModal from './EquipamentoEditModal'
+import TratorEditModal from './TratorEditModal' // IMPORTADO PARA EDIÇÃO DE TRATORES
 
 export default function App() {
- const [view, setView] = useState('clientes')
+  const [view, setView] = useState('clientes')
   const [modals, setModals] = useState({ 
     newFab: false, editFab: false, newCli: false, editCli: false, 
-    client: false, equip: false, searchEditClient: false, searchEditEquip: false 
+    client: false, equip: false, trator: false, 
+    searchEditClient: false, 
+    searchEditEquip: false, // USADO PARA IMPLEMENTOS
+    searchEditTrator: false  // ADICIONADO PARA TRATORES
   })
   const [selected, setSelected] = useState(null)
 
@@ -39,9 +44,15 @@ export default function App() {
 
         <div style={ui.actions}>
           <button onClick={() => setModals({...modals, client: true})} style={ui.btnSec}>+ CLIENTE</button>
-          <button onClick={() => setModals({...modals, equip: true})} style={ui.btnSec}>+ MÁQUINA</button>
+          <button onClick={() => setModals({...modals, trator: true})} style={ui.btnSec}>+ TRATOR</button>
+          <button onClick={() => setModals({...modals, equip: true})} style={ui.btnSec}>+ IMPLEMENTO</button>
+          
           <button onClick={() => setModals({...modals, searchEditClient: true})} style={ui.btnEdit}>EDITAR CLIENTE</button>
-          <button onClick={() => setModals({...modals, searchEditEquip: true})} style={ui.btnEdit}>EDITAR MÁQUINA</button>
+          {/* BOTÃO EDITAR TRATOR ADICIONADO */}
+          <button onClick={() => setModals({...modals, searchEditTrator: true})} style={ui.btnEdit}>EDITAR TRATOR</button>
+          {/* BOTÃO EDITAR MÁQUINA RENOMEADO PARA IMPLEMENTO */}
+          <button onClick={() => setModals({...modals, searchEditEquip: true})} style={ui.btnEdit}>EDITAR IMPLEMENTO</button>
+          
           <button 
             onClick={() => view === 'fabrica' ? setModals({...modals, newFab: true}) : setModals({...modals, newCli: true})} 
             style={ui.btnMain}
@@ -66,9 +77,16 @@ export default function App() {
       {modals.newCli && <FormModal initialData={selected} onClose={() => setModals({...modals, newCli: false})} />}
       {modals.editCli && <EditModal proposal={selected} onClose={() => setModals({...modals, editCli: false})} />}
       {modals.client && <ClientModal onClose={() => setModals({...modals, client: false})} />}
+      {modals.trator && <TratorModal onClose={() => setModals({...modals, trator: false})} />}
       {modals.equip && <EquipamentoModal onClose={() => setModals({...modals, equip: false})} />}
+      
       {modals.searchEditClient && <ClientEditModal onClose={() => setModals({...modals, searchEditClient: false})} />}
+      
+      {/* MODAL DE EDIÇÃO DE IMPLEMENTO (TABELA EQUIPAMENTOS) */}
       {modals.searchEditEquip && <EquipamentoEditModal onClose={() => setModals({...modals, searchEditEquip: false})} />}
+      
+      {/* MODAL DE EDIÇÃO DE TRATOR (TABELA CAD_TRATOR) */}
+      {modals.searchEditTrator && <TratorEditModal onClose={() => setModals({...modals, searchEditTrator: false})} />}
     </div>
   )
 }
