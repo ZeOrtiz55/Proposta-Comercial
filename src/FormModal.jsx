@@ -54,65 +54,63 @@ export default function FormModal({ onClose, initialData }) {
   useEffect(() => {
     async function carregarDados() {
       try {
-        // FUNÇÃO PARA BUSCAR TODOS OS REGISTROS (CONTORNA LIMITE DE 1000)
+        // FUNÇÃO PARA BUSCAR ABSOLUTAMENTE TODOS OS REGISTROS (BYPASS 1000 ROWS)
         const fetchAll = async (tableName) => {
-          let allData = []
-          let error = null
-          let from = 0
-          const step = 1000
-          
+          let allData = [];
+          let from = 0;
+          const step = 1000;
           while (true) {
-            const { data, error: err } = await supabase
+            const { data, error } = await supabase
               .from(tableName)
               .select('*')
-              .range(from, from + step - 1)
-            
-            if (err) { error = err; break; }
+              .range(from, from + step - 1);
+            if (error) throw error;
             if (!data || data.length === 0) break;
-            
-            allData = [...allData, ...data]
+            allData = [...allData, ...data];
             if (data.length < step) break;
-            from += step
+            from += step;
           }
-          return { data: allData, error }
-        }
+          return allData;
+        };
 
-        // BUSCA CLIENTES NAS DUAS TABELAS
-        const { data: cOmie } = await fetchAll('Clientes_Omie')
-        const { data: cManual } = await fetchAll('Cliente_Manual')
-        
-        // BUSCA EQUIPAMENTOS E TRATORES
-        const { data: e } = await supabase.from('Equipamentos').select('*')
-        const { data: t } = await supabase.from('cad_trator').select('*')
-        
-        // JUNTA E PADRONIZA AS LISTAS DE CLIENTES
-        const todosClientes = [
-          ...(cOmie || []).map(c => ({ ...c, source: 'OMIE' })),
-          ...(cManual || []).map(c => ({ ...c, source: 'MANUAL' }))
-        ]
-        
-        setListaClientes(todosClientes)
-        setListaEquipamentos(e || [])
-        setListaTratores(t || [])
-      } catch (err) { console.error("Erro ao carregar dados:", err) }
+        const [dataOmie, dataManual, dataEquip, dataTrator] = await Promise.all([
+          fetchAll('Clientes_Omie'),
+          fetchAll('Cliente_Manual'),
+          supabase.from('Equipamentos').select('*'),
+          supabase.from('cad_trator').select('*')
+        ]);
+
+        // Unifica as fontes de clientes
+        const unidos = [
+          ...(dataOmie || []).map(c => ({ ...c, origem: 'OMIE' })),
+          ...(dataManual || []).map(c => ({ ...c, origem: 'MANUAL' }))
+        ];
+
+        setListaClientes(unidos)
+        if (dataEquip.data) setListaEquipamentos(dataEquip.data)
+        if (dataTrator.data) setListaTratores(dataTrator.data)
+      } catch (err) { 
+        console.error("Erro crítico ao carregar clientes:", err) 
+      }
     }
     carregarDados()
   }, [])
 
   const handleSelecionarCliente = (c) => {
-    // Normaliza os nomes das colunas que são diferentes entre Omie e Manual
+    // Normalização baseada nos CSVs enviados
     const nome = c.nome || 'Sem Nome'
-    const doc = c['cpf/cnpj'] || c.cppf_cnpj || ''
+    const documento = c['cpf/cnpj'] || c.cppf_cnpj || ''
     const ie = c['inscricao_estadual/municipal'] || c.inscricao || ''
-    
+    const local = c.endereco || c.endereco_completo || ''
+
     setFormData(prev => ({
       ...prev,
       Cliente: nome,
-      'Cpf/Cpnj': doc,
+      'Cpf/Cpnj': documento,
       'inscricao_esta/mun': ie, 
       Cidade: c.cidade || '',
       Bairro: c.bairro || '',
-      End_Entrega: c.endereco || ''
+      End_Entrega: local
     }))
     setBuscaCli(nome); 
     setShowCli(false)
@@ -157,8 +155,8 @@ export default function FormModal({ onClose, initialData }) {
     if (!temValidade) payload.validade = 'Sem validade';
 
     const { error } = await supabase.from('Formulario').insert([payload])
-    if (!error) { alert("PROPOSTA GERADA!"); window.location.reload() }
-    else { alert("Erro: " + error.message); setLoading(false) }
+    if (!error) { alert("PROPOSTA GERADA COM SUCESSO!"); window.location.reload() }
+    else { alert("Erro ao salvar: " + error.message); setLoading(false) }
   }
 
   return (
@@ -174,21 +172,20 @@ export default function FormModal({ onClose, initialData }) {
             <div style={{ display: 'flex', gap: '20px' }}>
               <div style={{ flex: 1, position: 'relative' }}>
                 <label style={f.labelBusca}>1. BUSCAR CLIENTE (OMIE + MANUAL)</label>
-                <input style={f.search} value={buscaCli} onFocus={() => setShowCli(true)} onChange={e => {setBuscaCli(e.target.value); setShowCli(true)}} placeholder="Digite nome ou CPF..." />
+                <input style={f.search} value={buscaCli} onFocus={() => setShowCli(true)} onChange={e => {setBuscaCli(e.target.value); setShowCli(true)}} placeholder="Pesquisar entre todos os 2600+ clientes..." />
                 {showCli && (
                   <div style={f.dropdown}>
                     {listaClientes.filter(c => {
                         const termo = buscaCli.toLowerCase();
-                        return !buscaCli || (
+                        return !buscaCli || 
                           (c.nome || "").toLowerCase().includes(termo) || 
-                          (c['cpf/cnpj'] || "").toLowerCase().includes(termo) ||
-                          (c.cppf_cnpj || "").toLowerCase().includes(termo)
-                        )
-                      }).slice(0, 50).map((c, idx) => (
+                          (c['cpf/cnpj'] || "").toLowerCase().includes(termo) || 
+                          (c.cppf_cnpj || "").toLowerCase().includes(termo);
+                      }).slice(0, 100).map((c, idx) => (
                         <div key={`${c.id}-${idx}`} style={f.option} onClick={() => handleSelecionarCliente(c)}>
                           <div style={{fontWeight: 'bold'}}>{c.nome}</div>
                           <div style={{fontSize: '10px', color: '#666'}}>
-                            {c['cpf/cnpj'] || c.cppf_cnpj} | <span style={{color: c.source === 'OMIE' ? 'blue' : 'green'}}>{c.source}</span>
+                            {c['cpf/cnpj'] || c.cppf_cnpj} | <span style={{color: c.origem === 'OMIE' ? '#EF4444' : '#10B981', fontWeight: '900'}}>{c.origem}</span>
                           </div>
                         </div>
                       ))}
@@ -232,7 +229,7 @@ export default function FormModal({ onClose, initialData }) {
               <div style={f.row}>
                 <div style={f.cell}><label style={f.label}>CLIENTE</label><input value={formData.Cliente} readOnly style={f.input} /></div>
                 <div style={f.cell}><label style={f.label}>CPF / CNPJ</label><input value={formData['Cpf/Cpnj']} readOnly style={f.input} /></div>
-                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>I.E. / MUN.</label><input value={formData['inscricao_esta/mun']} onChange={e => setFormData({...formData, 'inscricao_esta/mun': e.target.value})} style={f.input} /></div>
+                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>I.E. / MUN.</label><input value={formData['inscricao_esta/mun']} readOnly style={f.input} /></div>
               </div>
               <div style={f.row}>
                 <div style={f.cell}><label style={f.label}>CIDADE</label><input value={formData.Cidade} readOnly style={f.input} /></div>
@@ -315,7 +312,7 @@ export default function FormModal({ onClose, initialData }) {
 
 const f = {
   overlay: { position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 3000, backdropFilter: 'blur(4px)' },
-  modal: { backgroundColor: '#F5F5DC', width: '95%', maxWidth: '1100px', height: '90vh', borderRadius: '20px', display: 'flex', flexDirection: 'column', border: '3px solid #000', overflow: 'hidden' },
+  modal: { backgroundColor: '#F5F5DC', width: '95%', maxWidth: '1100px', height: '95vh', borderRadius: '20px', display: 'flex', flexDirection: 'column', border: '3px solid #000', overflow: 'hidden' },
   header: { padding: '20px 30px', backgroundColor: '#fff', borderBottom: '3px solid #000', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   scroll: { padding: '25px 30px', overflowY: 'auto', flex: 1 },
   vList: { display: 'flex', flexDirection: 'column', gap: '20px' },
@@ -328,7 +325,7 @@ const f = {
   sectionTitle: { fontSize: '12px', fontWeight: '900', color: '#EF4444', textTransform: 'uppercase' },
   grid: { border: '2px solid #000', backgroundColor: '#fff', borderRadius: '10px', overflow: 'hidden' },
   row: { display: 'flex', borderBottom: '1px solid #000' },
-  cell: { flex: 1, padding: '12px', borderRight: '1px solid #111', display: 'flex', flexDirection: 'column' },
+  cell: { flex: 1, padding: '12px', borderRight: '1px solid #000', display: 'flex', flexDirection: 'column' },
   label: { fontSize: '9px', fontWeight: '900', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' },
   input: { border: 'none', outline: 'none', width: '100%', fontSize: '14px', fontWeight: '700', background: 'none' },
   footer: { padding: '20px 30px', backgroundColor: '#fff', borderTop: '3px solid #000' },
