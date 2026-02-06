@@ -77,7 +77,6 @@ export default function EditModal({ proposal, onClose }) {
       const dims = await getImageDimensions(formData.Imagem_Equipamento)
       const ratio = dims.width / dims.height; 
       let imgW = 170; let imgH = imgW / ratio;
-      // Limite de altura dinâmico baseado no tipo de equipamento
       const maxImgH = imgBoxHeight - 8;
       if (imgH > maxImgH) { imgH = maxImgH; imgW = imgH * ratio } 
       doc.addImage(formData.Imagem_Equipamento, 'JPEG', (pageWidth - imgW) / 2, y + 4, imgW, imgH)
@@ -107,10 +106,9 @@ export default function EditModal({ proposal, onClose }) {
         doc.text(`${label}:`, posX, posY);
         const labelWidth = doc.getTextWidth(`${label}: `);
         doc.setFont("helvetica", "normal");
-        doc.text(`${value || 'N/A'}`, posX + labelWidth, posY);
+        doc.text(`${value || '---'}`, posX + labelWidth, posY);
       };
 
-      // Coluna 1
       renderField("MOTOR", formData.motor_trator, margin + 5, startY);
       renderField("BOMBA INJETORA", formData.bomb_inje_trator, margin + 5, startY + lineHeight);
       renderField("BOMBA HIDRÁULICA", formData.bomb_hidra_trator, margin + 5, startY + (lineHeight * 2));
@@ -118,7 +116,6 @@ export default function EditModal({ proposal, onClose }) {
       renderField("CAPACIDADE COMB.", formData.capacit_comb_trator, margin + 5, startY + (lineHeight * 4));
       renderField("DIANTEIRA MÍN/MÁX", formData.diant_min_max_trator, margin + 5, startY + (lineHeight * 5));
 
-      // Coluna 2
       renderField("CÂMBIO", formData.cambio_trator, col2, startY);
       renderField("REVERSOR", formData.reversor_trator, col2, startY + lineHeight);
       renderField("TRANS. DIANTEIRA", formData.transmissao_diant_trator, col2, startY + (lineHeight * 2));
@@ -142,28 +139,36 @@ export default function EditModal({ proposal, onClose }) {
     doc.setFont("helvetica", "bold"); doc.setFontSize(7.5);
     doc.text("CASO SEJA FINANCIADO TAXA FLAT POR CONTA DO CLIENTE", pageWidth / 2, y + 5.5, { align: "center" })
     doc.setFontSize(9); doc.setFont("helvetica", "normal")
-    doc.text(`VALOR TOTAL: R$ ${formData.Valor_Total || '0,00'}`, margin + 5, y + 15)
-    doc.setTextColor(16, 185, 129); doc.text(`VALOR À VISTA: R$ ${formData.Valor_A_Vista || '0,00'}`, margin + 5, y + 22)
-    doc.setTextColor(0); doc.text(`PRAZO ENTREGA: ${formData.Prazo_Entrega || '0'} DIAS`, pageWidth / 2 + 10, y + 15)
-    doc.text(`CONDIÇÕES: ${formData.Condicoes || ''}`, pageWidth / 2 + 10, y + 22)
+    doc.text(`VALOR TOTAL: R$ ${formData.Valor_Total || '0,00'}`, margin + 5, y + 18)
+    doc.text(`PRAZO ENTREGA: ${formData.Prazo_Entrega || '0'} DIAS`, pageWidth / 2 + 10, y + 18)
+    doc.text(`CONDIÇÕES: ${formData.Condicoes || ''}`, pageWidth / 2 + 10, y + 25)
     
-    // VALIDADE DINÂMICA NO PDF
     if (formData.validade && formData.validade !== 'Sem validade') {
       doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(180, 83, 9);
       doc.text(`ESTA PROPOSTA É VÁLIDA POR ${formData.validade} DIAS.`, margin + 5, y + 31)
     }
 
+    // --- ASSINATURAS ALINHADAS ---
     y = 260; 
     const lineW = 75; 
     const midPointL = margin + (lineW / 2);
+    
+    // Cliente (Esquerda)
     doc.setDrawColor(0); doc.line(margin, y, margin + lineW, y); 
-    doc.setFontSize(6.5); doc.setTextColor(0);
-    doc.text(`${formData.Cliente || ''}`.toUpperCase(), midPointL, y + 4, { align: "center" })
-    doc.text(`CPF/CNPJ: ${formData['Cpf/Cpnj'] || ''}`, midPointL, y + 7.5, { align: "center" })
+    doc.setFontSize(7); doc.setTextColor(0); doc.setFont("helvetica", "bold");
+    doc.text(`${formData.Cliente || ''}`.toUpperCase(), midPointL, y + 5, { align: "center" })
+    doc.setFont("helvetica", "normal");
+    doc.text(`${formData['Cpf/Cpnj'] || ''}`, midPointL, y + 9, { align: "center" })
+    doc.text(`${formData.End_Entrega || ''}`, midPointL, y + 13, { align: "center" })
+    doc.text(`${formData.Bairro || ''}`, midPointL, y + 17, { align: "center" })
 
-    doc.line(pageWidth - margin - lineW, y, pageWidth - margin, y)
+    // Diretor (Direita - Imagem e Risco)
+    const directorLineX = pageWidth - margin - lineW;
+    doc.line(directorLineX, y, pageWidth - margin, y);
     if (assinaturaDiretor) { 
-      doc.addImage(assinaturaDiretor, 'PNG', pageWidth - margin - 110, y - 5, 115, 35) 
+      // X: directorLineX - 5 (movido para direita)
+      // Y: y - 10 (alinha 1cm abaixo do topo com a linha de assinatura)
+      doc.addImage(assinaturaDiretor, 'PNG', directorLineX - 5, y - 5, 85, 25) 
     }
 
     doc.save(`Proposta_${formData.Cliente || 'NovaTratores'}.pdf`)
@@ -220,37 +225,32 @@ export default function EditModal({ proposal, onClose }) {
 
               {isTrator ? (
                 <div style={s.gridTractor}>
-                  {/* COLUNA 1 */}
                   <div style={s.col}>
                     <div style={s.cellTech}><label style={s.labelBold}>MOTOR</label><input value={formData.motor_trator || ''} onChange={e => setFormData({...formData, motor_trator: e.target.value})} style={s.input} /></div>
-                    <div style={s.cellTech}><label style={s.labelBold}>BOMBA INJETORA</label><input value={formData.bomb_inje_trator || ''} onChange={e => setFormData({...formData, bomb_inje_trator: e.target.value})} style={s.input} /></div>
-                    <div style={s.cellTech}><label style={s.labelBold}>BOMBA HIDRÁULICA</label><input value={formData.bomb_hidra_trator || ''} onChange={e => setFormData({...formData, bomb_hidra_trator: e.target.value})} style={s.input} /></div>
+                    <div style={s.cellTech}><label style={s.labelBold}>BOMBA INJE.</label><input value={formData.bomb_inje_trator || ''} onChange={e => setFormData({...formData, bomb_inje_trator: e.target.value})} style={s.input} /></div>
+                    <div style={s.cellTech}><label style={s.labelBold}>BOMBA HIDRA.</label><input value={formData.bomb_hidra_trator || ''} onChange={e => setFormData({...formData, bomb_hidra_trator: e.target.value})} style={s.input} /></div>
                     <div style={s.cellTech}><label style={s.labelBold}>EMBREAGEM</label><input value={formData.embreagem_trator || ''} onChange={e => setFormData({...formData, embreagem_trator: e.target.value})} style={s.input} /></div>
                   </div>
-                  {/* COLUNA 2 */}
                   <div style={s.col}>
                     <div style={s.cellTech}><label style={s.labelBold}>CÂMBIO</label><input value={formData.cambio_trator || ''} onChange={e => setFormData({...formData, cambio_trator: e.target.value})} style={s.input} /></div>
                     <div style={s.cellTech}><label style={s.labelBold}>REVERSOR</label><input value={formData.reversor_trator || ''} onChange={e => setFormData({...formData, reversor_trator: e.target.value})} style={s.input} /></div>
-                    <div style={s.cellTech}><label style={s.labelBold}>TRANS. DIANTEIRA</label><input value={formData.transmissao_diant_trator || ''} onChange={e => setFormData({...formData, transmissao_diant_trator: e.target.value})} style={s.input} /></div>
-                    <div style={s.cellTech}><label style={s.labelBold}>TRANS. TRASEIRA</label><input value={formData.trasmissao_tras_trator || ''} onChange={e => setFormData({...formData, trasmissao_tras_trator: e.target.value})} style={s.input} /></div>
+                    <div style={s.cellTech}><label style={s.labelBold}>TRANS. DIANT.</label><input value={formData.transmissao_diant_trator || ''} onChange={e => setFormData({...formData, transmissao_diant_trator: e.target.value})} style={s.input} /></div>
+                    <div style={s.cellTech}><label style={s.labelBold}>TRANS. TRAS.</label><input value={formData.trasmissao_tras_trator || ''} onChange={e => setFormData({...formData, trasmissao_tras_trator: e.target.value})} style={s.input} /></div>
                   </div>
-                  {/* COLUNA 3 */}
-                  <div style={s.col}>
-                    <div style={s.cellTech}><label style={s.labelBold}>CAPACIDADE COMB.</label><input value={formData.capacit_comb_trator || ''} onChange={e => setFormData({...formData, capacit_comb_trator: e.target.value})} style={s.input} /></div>
+                  <div style={{...s.col, borderRight: 'none'}}>
+                    <div style={s.cellTech}><label style={s.labelBold}>CAP. COMB.</label><input value={formData.capacit_comb_trator || ''} onChange={e => setFormData({...formData, capacit_comb_trator: e.target.value})} style={s.input} /></div>
                     <div style={s.cellTech}><label style={s.labelBold}>ÓLEO MOTOR</label><input value={formData.oleo_motor_trator || ''} onChange={e => setFormData({...formData, oleo_motor_trator: e.target.value})} style={s.input} /></div>
-                    <div style={s.cellTech}><label style={s.labelBold}>ÓLEO TRANSMISSÃO</label><input value={formData.oleo_trasmissao_trator || ''} onChange={e => setFormData({...formData, oleo_trasmissao_trator: e.target.value})} style={s.input} /></div>
+                    <div style={s.cellTech}><label style={s.labelBold}>ÓLEO TRANS.</label><input value={formData.oleo_trasmissao_trator || ''} onChange={e => setFormData({...formData, oleo_trasmissao_trator: e.target.value})} style={s.input} /></div>
                     <div style={s.cellTech}><label style={s.labelBold}>FINAME/NCM</label><input value={formData['Niname/NCM'] || ''} onChange={e => setFormData({...formData, 'Niname/NCM': e.target.value})} style={s.input} /></div>
+                  </div>
+                  <div style={s.rowFull}>
+                    <div style={s.cell}><label style={s.labelBold}>DIANTEIRA MÍN/MÁX</label><input value={formData.diant_min_max_trator || ''} onChange={e => setFormData({...formData, diant_min_max_trator: e.target.value})} style={s.input} /></div>
+                    <div style={{...s.cell, borderRight: 'none'}}><label style={s.labelBold}>TRASEIRA MÍN/MÁX</label><input value={formData.tras_min_max_trator || ''} onChange={e => setFormData({...formData, tras_min_max_trator: e.target.value})} style={s.input} /></div>
                   </div>
                 </div>
               ) : (
                 <div style={{...s.row, borderBottom: 'none'}}>
                   <div style={{ ...s.cell, borderRight: 'none' }}><label style={s.labelBold}>DESCRIÇÃO TÉCNICA</label><textarea value={formData.Configuracao || formData.Descricao || ''} onChange={e => setFormData({ ...formData, Configuracao: e.target.value })} style={s.textarea} /></div>
-                </div>
-              )}
-              {isTrator && (
-                <div style={s.row}>
-                    <div style={s.cell}><label style={s.labelBold}>DIANTEIRA MÍN/MÁX</label><input value={formData.diant_min_max_trator || ''} onChange={e => setFormData({...formData, diant_min_max_trator: e.target.value})} style={s.input} /></div>
-                    <div style={{...s.cell, borderRight:'none'}}><label style={s.labelBold}>TRASEIRA MÍN/MÁX</label><input value={formData.tras_min_max_trator || ''} onChange={e => setFormData({...formData, tras_min_max_trator: e.target.value})} style={s.input} /></div>
                 </div>
               )}
             </div>
@@ -259,7 +259,6 @@ export default function EditModal({ proposal, onClose }) {
             <div style={s.gridContainer}>
               <div style={s.row}>
                 <div style={s.cell}><label style={s.labelBold}>VALOR TOTAL</label><input value={formData.Valor_Total || ''} onChange={e => setFormData({ ...formData, Valor_Total: e.target.value })} style={{ ...s.input, color: 'red' }} /></div>
-                <div style={s.cell}><label style={s.labelBold}>À VISTA</label><input value={formData.Valor_A_Vista || ''} onChange={e => setFormData({ ...formData, Valor_A_Vista: e.target.value })} style={{ ...s.input, color: 'green' }} /></div>
                 <div style={{ ...s.cell, borderRight: 'none' }}><label style={s.labelBold}>VALIDADE (DIAS)</label><input value={formData.validade || ''} onChange={e => setFormData({ ...formData, validade: e.target.value })} style={{...s.input, color: '#B45309'}} /></div>
               </div>
               <div style={{...s.row, borderBottom: 'none'}}>
@@ -285,10 +284,11 @@ const s = {
   sectionTitle: { fontSize: '11px', fontWeight: '900', color: '#EF4444', textTransform: 'uppercase' },
   gridContainer: { border: '2px solid #000', borderRadius: '10px', overflow: 'hidden', backgroundColor: '#fff' },
   gridTractor: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', backgroundColor: '#fff', borderBottom: '1px solid #eee' },
-  col: { borderRight: '1px solid #eee' },
+  col: { borderRight: '1px solid #eee', display: 'flex', flexDirection: 'column' },
   row: { display: 'flex', borderBottom: '1px solid #eee' },
+  rowFull: { display: 'flex', width: '100%', borderTop: '1px solid #eee' },
   cell: { flex: 1, padding: '10px 15px', borderRight: '1px solid #eee', display: 'flex', flexDirection: 'column', gap: '2px' },
-  cellTech: { padding: '6px 12px', borderBottom: '1px solid #f8f8f8', display: 'flex', flexDirection: 'column', gap: '1px' },
+  cellTech: { padding: '8px 12px', borderBottom: '1px solid #f8f8f8', display: 'flex', flexDirection: 'column', gap: '1px' },
   labelBold: { fontSize: '8.5px', fontWeight: '900', color: '#1E293B', textTransform: 'uppercase' }, 
   input: { border: 'none', outline: 'none', fontSize: '13px', fontWeight: '700', color: '#000', background: 'none', width: '100%' },
   textarea: { border: 'none', outline: 'none', fontSize: '13px', width: '100%', minHeight: '70px', background: 'none', resize: 'none', fontWeight: '600' },

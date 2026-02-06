@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
-import { supabaseOmie } from './supabaseOmieClient'
 
 export default function FormModal({ onClose, initialData }) {
   const [loading, setLoading] = useState(false)
@@ -29,7 +28,6 @@ export default function FormModal({ onClose, initialData }) {
     Ano: '',
     Prazo_Entrega: '',
     Valor_Total: '',
-    Valor_A_Vista: '',
     Condicoes: '',
     validade: '',
     Imagem_Equipamento: '',
@@ -80,7 +78,6 @@ export default function FormModal({ onClose, initialData }) {
           supabase.from('cad_trator').select('*')
         ]);
 
-        // Unifica as fontes de clientes
         const unidos = [
           ...(dataOmie || []).map(c => ({ ...c, origem: 'OMIE' })),
           ...(dataManual || []).map(c => ({ ...c, origem: 'MANUAL' }))
@@ -89,15 +86,12 @@ export default function FormModal({ onClose, initialData }) {
         setListaClientes(unidos)
         if (dataEquip.data) setListaEquipamentos(dataEquip.data)
         if (dataTrator.data) setListaTratores(dataTrator.data)
-      } catch (err) { 
-        console.error("Erro crítico ao carregar clientes:", err) 
-      }
+      } catch (err) { console.error("Erro ao carregar dados:", err) }
     }
     carregarDados()
   }, [])
 
   const handleSelecionarCliente = (c) => {
-    // Normalização baseada nos CSVs enviados
     const nome = c.nome || 'Sem Nome'
     const documento = c['cpf/cnpj'] || c.cppf_cnpj || ''
     const ie = c['inscricao_estadual/municipal'] || c.inscricao || ''
@@ -152,6 +146,7 @@ export default function FormModal({ onClose, initialData }) {
     const payload = { ...formData };
     delete payload.cep; 
     delete payload.Tipo_Entrega;
+    delete payload.Valor_A_Vista; // Garantia extra de remoção para o payload
     if (!temValidade) payload.validade = 'Sem validade';
 
     const { error } = await supabase.from('Formulario').insert([payload])
@@ -227,25 +222,25 @@ export default function FormModal({ onClose, initialData }) {
             <div style={f.sectionTitle}>I. DADOS DO CLIENTE</div>
             <div style={f.grid}>
               <div style={f.row}>
-                <div style={f.cell}><label style={f.label}>CLIENTE</label><input value={formData.Cliente} readOnly style={f.input} /></div>
-                <div style={f.cell}><label style={f.label}>CPF / CNPJ</label><input value={formData['Cpf/Cpnj']} readOnly style={f.input} /></div>
-                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>I.E. / MUN.</label><input value={formData['inscricao_esta/mun']} readOnly style={f.input} /></div>
+                <div style={f.cell}><label style={f.label}>CLIENTE</label><input value={formData.Cliente} onChange={e => setFormData({...formData, Cliente: e.target.value})} style={f.input} /></div>
+                <div style={f.cell}><label style={f.label}>CPF / CNPJ</label><input value={formData['Cpf/Cpnj']} onChange={e => setFormData({...formData, 'Cpf/Cpnj': e.target.value})} style={f.input} /></div>
+                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>I.E. / MUN.</label><input value={formData['inscricao_esta/mun']} onChange={e => setFormData({...formData, 'inscricao_esta/mun': e.target.value})} style={f.input} /></div>
               </div>
               <div style={f.row}>
-                <div style={f.cell}><label style={f.label}>CIDADE</label><input value={formData.Cidade} readOnly style={f.input} /></div>
-                <div style={f.cell}><label style={f.label}>BAIRRO</label><input value={formData.Bairro} readOnly style={f.input} /></div>
-                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>CEP</label><input value={formData.cep} readOnly style={{...f.input, color: '#999'}} /></div>
+                <div style={f.cell}><label style={f.label}>CIDADE</label><input value={formData.Cidade} onChange={e => setFormData({...formData, Cidade: e.target.value})} style={f.input} /></div>
+                <div style={f.cell}><label style={f.label}>BAIRRO</label><input value={formData.Bairro} onChange={e => setFormData({...formData, Bairro: e.target.value})} style={f.input} /></div>
+                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>CEP</label><input value={formData.cep} onChange={e => setFormData({...formData, cep: e.target.value})} style={{...f.input, color: '#999'}} /></div>
               </div>
               <div style={{...f.row, borderBottom: 'none'}}>
-                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>ENDEREÇO COMPLETO</label><input value={formData.End_Entrega} readOnly style={f.input} /></div>
+                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>ENDEREÇO COMPLETO</label><input value={formData.End_Entrega} onChange={e => setFormData({...formData, End_Entrega: e.target.value})} style={f.input} /></div>
               </div>
             </div>
 
             <div style={f.sectionTitle}>II. DADOS DO {tipoMaq.toUpperCase()}</div>
             <div style={f.grid}>
               <div style={f.row}>
-                <div style={f.cell}><label style={f.label}>MARCA</label><input value={formData.Marca} readOnly style={f.input} /></div>
-                <div style={f.cell}><label style={f.label}>MODELO</label><input value={formData.Modelo} readOnly style={f.input} /></div>
+                <div style={f.cell}><label style={f.label}>MARCA</label><input value={formData.Marca} onChange={e => setFormData({...formData, Marca: e.target.value})} style={f.input} /></div>
+                <div style={f.cell}><label style={f.label}>MODELO</label><input value={formData.Modelo} onChange={e => setFormData({...formData, Modelo: e.target.value})} style={f.input} /></div>
                 <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>ANO</label><input value={formData.Ano} onChange={e => setFormData({...formData, Ano: e.target.value})} style={f.input} /></div>
               </div>
 
@@ -287,8 +282,7 @@ export default function FormModal({ onClose, initialData }) {
             <div style={f.sectionTitle}>III. CONDIÇÕES FINANCEIRAS</div>
             <div style={f.grid}>
               <div style={f.row}>
-                <div style={f.cell}><label style={f.label}>VALOR TOTAL (R$)</label><input type="number" step="0.01" value={formData.Valor_Total} onChange={e => setFormData({...formData, Valor_Total: e.target.value})} style={{...f.input, color: 'red'}} /></div>
-                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>VALOR À VISTA (R$)</label><input type="number" step="0.01" value={formData.Valor_A_Vista} onChange={e => setFormData({...formData, Valor_A_Vista: e.target.value})} style={{...f.input, color: 'green'}} /></div>
+                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>VALOR TOTAL (R$)</label><input type="number" step="0.01" value={formData.Valor_Total} onChange={e => setFormData({...formData, Valor_Total: e.target.value})} style={{...f.input, color: 'red'}} /></div>
               </div>
               <div style={f.row}>
                 <div style={f.cell}><label style={f.label}>PRAZO ENTREGA (DIAS)</label><input type="number" value={formData.Prazo_Entrega} onChange={e => setFormData({...formData, Prazo_Entrega: e.target.value})} style={f.input} /></div>
@@ -299,7 +293,7 @@ export default function FormModal({ onClose, initialData }) {
                 <div style={{...f.cell, borderRight: 'none'}}>{temValidade ? (<><label style={f.label}>DIAS DE VALIDADE</label><input type="number" value={formData.validade} onChange={e => setFormData({...formData, validade: e.target.value})} style={{...f.input, color: '#B45309'}} /></>) : (<div style={{color: '#999', fontSize: '11px', fontWeight: 'bold', paddingTop: '10px'}}>SEM VALIDADE</div>)}</div>
               </div>
               <div style={{...f.row, borderTop: '1px solid #000', borderBottom: 'none'}}>
-                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>CONDIÇÕES DE PAGAMENTO</label><input value={formData.Condicoes} onChange={e => setFormData({...formData, Condicoes: e.target.value})} style={f.input} /></div>
+                <div style={{...f.cell, borderRight: 'none'}}><label style={f.label}>CONDIÇÕES DE PAGAMENTO / OBSERVAÇÕES</label><input value={formData.Condicoes} onChange={e => setFormData({...formData, Condicoes: e.target.value})} style={f.input} /></div>
               </div>
             </div>
           </form>
@@ -312,7 +306,7 @@ export default function FormModal({ onClose, initialData }) {
 
 const f = {
   overlay: { position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 3000, backdropFilter: 'blur(4px)' },
-  modal: { backgroundColor: '#F5F5DC', width: '95%', maxWidth: '1100px', height: '95vh', borderRadius: '20px', display: 'flex', flexDirection: 'column', border: '3px solid #000', overflow: 'hidden' },
+  modal: { backgroundColor: '#F5F5DC', width: '95%', maxWidth: '1100px', height: '90vh', borderRadius: '20px', display: 'flex', flexDirection: 'column', border: '3px solid #000', overflow: 'hidden' },
   header: { padding: '20px 30px', backgroundColor: '#fff', borderBottom: '3px solid #000', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   scroll: { padding: '25px 30px', overflowY: 'auto', flex: 1 },
   vList: { display: 'flex', flexDirection: 'column', gap: '20px' },
