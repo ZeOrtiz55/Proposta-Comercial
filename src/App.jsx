@@ -10,7 +10,8 @@ import EquipamentoModal from './EquipamentoModal'
 import TratorModal from './TratorModal' 
 import ClientEditModal from './ClientEditModal'
 import EquipamentoEditModal from './EquipamentoEditModal'
-import TratorEditModal from './TratorEditModal' // IMPORTADO PARA EDIÇÃO DE TRATORES
+import TratorEditModal from './TratorEditModal'
+import Lixeira from './Lixeira' // IMPORTADO PARA GERENCIAR ITENS EXCLUÍDOS
 
 export default function App() {
   const [view, setView] = useState('clientes')
@@ -18,8 +19,9 @@ export default function App() {
     newFab: false, editFab: false, newCli: false, editCli: false, 
     client: false, equip: false, trator: false, 
     searchEditClient: false, 
-    searchEditEquip: false, // USADO PARA IMPLEMENTOS
-    searchEditTrator: false  // ADICIONADO PARA TRATORES
+    searchEditEquip: false, 
+    searchEditTrator: false,
+    trash: false // ESTADO PARA CONTROLAR O MODAL DA LIXEIRA
   })
   const [selected, setSelected] = useState(null)
 
@@ -48,11 +50,12 @@ export default function App() {
           <button onClick={() => setModals({...modals, equip: true})} style={ui.btnSec}>+ IMPLEMENTO</button>
           
           <button onClick={() => setModals({...modals, searchEditClient: true})} style={ui.btnEdit}>EDITAR CLIENTE</button>
-          {/* BOTÃO EDITAR TRATOR ADICIONADO */}
           <button onClick={() => setModals({...modals, searchEditTrator: true})} style={ui.btnEdit}>EDITAR TRATOR</button>
-          {/* BOTÃO EDITAR MÁQUINA RENOMEADO PARA IMPLEMENTO */}
           <button onClick={() => setModals({...modals, searchEditEquip: true})} style={ui.btnEdit}>EDITAR IMPLEMENTO</button>
           
+          {/* BOTÃO DA LIXEIRA ADICIONADO */}
+          <button onClick={() => setModals({...modals, trash: true})} style={ui.btnTrash}>LIXEIRA 🗑️</button>
+
           <button 
             onClick={() => view === 'fabrica' ? setModals({...modals, newFab: true}) : setModals({...modals, newCli: true})} 
             style={ui.btnMain}
@@ -81,12 +84,11 @@ export default function App() {
       {modals.equip && <EquipamentoModal onClose={() => setModals({...modals, equip: false})} />}
       
       {modals.searchEditClient && <ClientEditModal onClose={() => setModals({...modals, searchEditClient: false})} />}
-      
-      {/* MODAL DE EDIÇÃO DE IMPLEMENTO (TABELA EQUIPAMENTOS) */}
       {modals.searchEditEquip && <EquipamentoEditModal onClose={() => setModals({...modals, searchEditEquip: false})} />}
-      
-      {/* MODAL DE EDIÇÃO DE TRATOR (TABELA CAD_TRATOR) */}
       {modals.searchEditTrator && <TratorEditModal onClose={() => setModals({...modals, searchEditTrator: false})} />}
+      
+      {/* MODAL DA LIXEIRA RENDERIZADO */}
+      {modals.trash && <Lixeira onClose={() => setModals({...modals, trash: false})} />}
     </div>
   )
 }
@@ -106,5 +108,6 @@ const ui = {
   btnMain: { padding: '12px 20px', backgroundColor: '#EF4444', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: '800', cursor: 'pointer', fontSize: '11px' },
   btnSec: { padding: '12px 18px', backgroundColor: '#fff', color: '#1E293B', border: '1px solid #E2E8F0', borderRadius: '10px', fontWeight: '700', fontSize: '11px', cursor: 'pointer' },
   btnEdit: { padding: '12px 18px', backgroundColor: '#1E293B', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: '700', fontSize: '11px', cursor: 'pointer' },
+  btnTrash: { padding: '12px 18px', backgroundColor: '#64748B', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: '700', fontSize: '11px', cursor: 'pointer' },
   content: { padding: '30px 40px' }
 }

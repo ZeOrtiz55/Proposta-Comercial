@@ -33,6 +33,23 @@ export default function EditModal({ proposal, onClose }) {
     })
   }
 
+  // FUNÇÃO PARA MOVER PARA LIXEIRA
+  const handleTrash = async () => {
+    if (confirm("DESEJA REALMENTE MOVER ESTA PROPOSTA PARA A LIXEIRA?")) {
+      const { error } = await supabase
+        .from('Formulario')
+        .update({ status: 'Lixeira' })
+        .eq('id', proposal.id)
+      
+      if (!error) {
+        alert("MOVIDO PARA A LIXEIRA COM SUCESSO!")
+        window.location.reload()
+      } else {
+        alert("Erro ao mover: " + error.message)
+      }
+    }
+  }
+
   const handlePrint = async () => {
     const doc = new jsPDF()
     const margin = 15
@@ -60,17 +77,42 @@ export default function EditModal({ proposal, onClose }) {
 
     // GRADE I: CLIENTE
     y = 38; 
-    doc.rect(margin, y, innerWidth, 25)
-    doc.setFontSize(8.5); doc.setFont("helvetica", "normal")
-    doc.text(`CLIENTE: ${formData.Cliente || ''}`, margin + 5, y + 7)
-    doc.text(`CPF/CNPJ: ${formData['Cpf/Cpnj'] || ''}`, margin + 5, y + 13)
-    doc.text(`I.E./MUN.: ${formData['inscricao_esta/mun'] || ''}`, margin + 5, y + 19)
-    doc.text(`CIDADE: ${formData.Cidade || ''}`, pageWidth / 2 + 10, y + 7)
-    doc.text(`BAIRRO: ${formData.Bairro || ''}`, pageWidth / 2 + 10, y + 13)
-    doc.text(`ENDEREÇO: ${formData.End_Entrega || ''}`, pageWidth / 2 + 10, y + 19)
+    doc.rect(margin, y, innerWidth, 32) 
+    doc.setFontSize(8.5);
+    
+    const col2X = pageWidth / 2 + 10;
+    
+    // NOME CLIENTE (SEM NEGRITO E QUEBRA PARA A BORDA)
+    doc.setFont("helvetica", "bold");
+    doc.text("CLIENTE: ", margin + 5, y + 7);
+    const labelClienteW = doc.getTextWidth("CLIENTE: ");
+    doc.setFont("helvetica", "normal");
+    
+    const nomeCliente = (formData.Cliente || '').toUpperCase();
+    const larguraDisponivelNome = col2X - (margin + 5) - labelClienteW - 2;
+    const splitNome = doc.splitTextToSize(nomeCliente, larguraDisponivelNome);
+    
+    doc.text(splitNome[0], margin + 5 + labelClienteW, y + 7);
+    
+    let offsetNome = 0;
+    if (splitNome.length > 1) {
+      offsetNome = (splitNome.length - 1) * 4;
+      // As linhas seguintes do nome começam na borda (margin + 5)
+      for (let i = 1; i < splitNome.length; i++) {
+        doc.text(splitNome[i], margin + 5, y + 7 + (i * 4));
+      }
+    }
 
-    // GRADE II: IMAGEM (Ajustada se for trator)
-    y += 25; 
+    doc.text(`CPF/CNPJ: ${formData['Cpf/Cpnj'] || ''}`, margin + 5, y + 13 + offsetNome)
+    doc.text(`I.E./MUN.: ${formData['inscricao_esta/mun'] || ''}`, margin + 5, y + 19 + offsetNome)
+    doc.text(`CEP: ${formData.cep || ''}`, margin + 5, y + 25 + offsetNome)
+
+    doc.text(`CIDADE: ${formData.Cidade || ''}`, col2X, y + 7)
+    doc.text(`BAIRRO: ${formData.Bairro || ''}`, col2X, y + 13)
+    doc.text(`ENDEREÇO: ${formData.End_Entrega || ''}`, col2X, y + 19)
+
+    // GRADE II: IMAGEM
+    y += 32; 
     const imgBoxHeight = isTrator ? 60 : 95;
     doc.rect(margin, y, innerWidth, imgBoxHeight)
     if (formData.Imagem_Equipamento) {
@@ -90,39 +132,39 @@ export default function EditModal({ proposal, onClose }) {
     doc.text(`MARCA: ${formData.Marca || ''}`, margin + 5, y + 7)
     doc.text(`MODELO: ${formData.Modelo || ''}`, margin + 5, y + 13)
     doc.text(`ANO: ${formData.Ano || ''}`, margin + 5, y + 19)
-    doc.text(`NCM: ${formData['Niname/NCM'] || ''}`, pageWidth / 2 + 10, y + 7)
-    doc.text(`QTD: ${formData.Qtd_Eqp || '1'}`, pageWidth / 2 + 10, y + 13)
+    doc.text(`NCM: ${formData['Niname/NCM'] || ''}`, col2X, y + 7)
+    doc.text(`QTD: ${formData.Qtd_Eqp || '1'}`, col2X, y + 13)
     
     doc.text("CONFIGURAÇÃO TÉCNICA:", margin + 5, y + 27)
     
     if (isTrator) {
       doc.setFontSize(7.5);
       const startY = y + 33;
-      const col2 = pageWidth / 2 + 5;
+      const colTech2 = pageWidth / 2 + 5;
       const lineHeight = 5;
 
       const renderField = (label, value, posX, posY) => {
         doc.setFont("helvetica", "bold");
         doc.text(`${label}:`, posX, posY);
-        const labelWidth = doc.getTextWidth(`${label}: `);
+        const lw = doc.getTextWidth(`${label}: `);
         doc.setFont("helvetica", "normal");
-        doc.text(`${value || '---'}`, posX + labelWidth, posY);
+        doc.text(`${value || '---'}`, posX + lw, posY);
       };
 
       renderField("MOTOR", formData.motor_trator, margin + 5, startY);
-      renderField("BOMBA INJETORA", formData.bomb_inje_trator, margin + 5, startY + lineHeight);
-      renderField("BOMBA HIDRÁULICA", formData.bomb_hidra_trator, margin + 5, startY + (lineHeight * 2));
+      renderField("BOMBA INJE.", formData.bomb_inje_trator, margin + 5, startY + lineHeight);
+      renderField("BOMBA HIDRA.", formData.bomb_hidra_trator, margin + 5, startY + (lineHeight * 2));
       renderField("EMBREAGEM", formData.embreagem_trator, margin + 5, startY + (lineHeight * 3));
       renderField("CAPACIDADE COMB.", formData.capacit_comb_trator, margin + 5, startY + (lineHeight * 4));
-      renderField("DIANTEIRA MÍN/MÁX", formData.diant_min_max_trator, margin + 5, startY + (lineHeight * 5));
+      renderField("DIANT. MÍN/MÁX", formData.diant_min_max_trator, margin + 5, startY + (lineHeight * 5));
 
-      renderField("CÂMBIO", formData.cambio_trator, col2, startY);
-      renderField("REVERSOR", formData.reversor_trator, col2, startY + lineHeight);
-      renderField("TRANS. DIANTEIRA", formData.transmissao_diant_trator, col2, startY + (lineHeight * 2));
-      renderField("TRANS. TRASEIRA", formData.trasmissao_tras_trator, col2, startY + (lineHeight * 3));
-      renderField("ÓLEO MOTOR", formData.oleo_motor_trator, col2, startY + (lineHeight * 4));
-      renderField("ÓLEO TRANS.", formData.oleo_trasmissao_trator, col2, startY + (lineHeight * 5));
-      renderField("TRASEIRA MÍN/MÁX", formData.tras_min_max_trator, col2, startY + (lineHeight * 6));
+      renderField("CÂMBIO", formData.cambio_trator, colTech2, startY);
+      renderField("REVERSOR", formData.reversor_trator, colTech2, startY + lineHeight);
+      renderField("TRANS. DIANT.", formData.transmissao_diant_trator, colTech2, startY + (lineHeight * 2));
+      renderField("TRANS. TRAS.", formData.trasmissao_tras_trator, colTech2, startY + (lineHeight * 3));
+      renderField("ÓLEO MOTOR", formData.oleo_motor_trator, colTech2, startY + (lineHeight * 4));
+      renderField("ÓLEO TRANS.", formData.oleo_trasmissao_trator, colTech2, startY + (lineHeight * 5));
+      renderField("TRAS. MÍN/MÁX", formData.tras_min_max_trator, colTech2, startY + (lineHeight * 6));
 
     } else {
       doc.setFont("helvetica", "normal")
@@ -138,22 +180,36 @@ export default function EditModal({ proposal, onClose }) {
     doc.line(margin, y + 8, margin + innerWidth, y + 8)
     doc.setFont("helvetica", "bold"); doc.setFontSize(7.5);
     doc.text("CASO SEJA FINANCIADO TAXA FLAT POR CONTA DO CLIENTE", pageWidth / 2, y + 5.5, { align: "center" })
+    
     doc.setFontSize(9); doc.setFont("helvetica", "normal")
     doc.text(`VALOR TOTAL: R$ ${formData.Valor_Total || '0,00'}`, margin + 5, y + 18)
-    doc.text(`PRAZO ENTREGA: ${formData.Prazo_Entrega || '0'} DIAS`, pageWidth / 2 + 10, y + 18)
-    doc.text(`CONDIÇÕES: ${formData.Condicoes || ''}`, pageWidth / 2 + 10, y + 25)
+    
+    // Ocultar Prazo se for 0
+    if (formData.Prazo_Entrega && Number(formData.Prazo_Entrega) !== 0) {
+      doc.text(`PRAZO ENTREGA: ${formData.Prazo_Entrega} DIAS`, col2X, y + 18)
+    }
+
+    // CONDIÇÕES COM QUEBRA ALINHADA
+    const labelCond = "CONDIÇÕES: ";
+    doc.setFont("helvetica", "bold");
+    doc.text(labelCond, col2X, y + 25);
+    const condW = doc.getTextWidth(labelCond);
+    doc.setFont("helvetica", "normal");
+    const valorCond = formData.Condicoes || '';
+    const splitCond = doc.splitTextToSize(valorCond, (pageWidth - margin) - (col2X + condW));
+    doc.text(splitCond, col2X + condW, y + 25);
     
     if (formData.validade && formData.validade !== 'Sem validade') {
       doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(180, 83, 9);
       doc.text(`ESTA PROPOSTA É VÁLIDA POR ${formData.validade} DIAS.`, margin + 5, y + 31)
     }
 
-    // --- ASSINATURAS ALINHADAS ---
+    // --- ASSINATURAS ---
     y = 260; 
     const lineW = 75; 
     const midPointL = margin + (lineW / 2);
+    const directorLineX = pageWidth - margin - lineW;
     
-    // Cliente (Esquerda)
     doc.setDrawColor(0); doc.line(margin, y, margin + lineW, y); 
     doc.setFontSize(7); doc.setTextColor(0); doc.setFont("helvetica", "bold");
     doc.text(`${formData.Cliente || ''}`.toUpperCase(), midPointL, y + 5, { align: "center" })
@@ -162,13 +218,9 @@ export default function EditModal({ proposal, onClose }) {
     doc.text(`${formData.End_Entrega || ''}`, midPointL, y + 13, { align: "center" })
     doc.text(`${formData.Bairro || ''}`, midPointL, y + 17, { align: "center" })
 
-    // Diretor (Direita - Imagem e Risco)
-    const directorLineX = pageWidth - margin - lineW;
     doc.line(directorLineX, y, pageWidth - margin, y);
     if (assinaturaDiretor) { 
-      // X: directorLineX - 5 (movido para direita)
-      // Y: y - 10 (alinha 1cm abaixo do topo com a linha de assinatura)
-      doc.addImage(assinaturaDiretor, 'PNG', directorLineX - 5, y - 5, 85, 25) 
+      doc.addImage(assinaturaDiretor, 'PNG', directorLineX, y - 5, 85, 25) 
     }
 
     doc.save(`Proposta_${formData.Cliente || 'NovaTratores'}.pdf`)
@@ -189,6 +241,7 @@ export default function EditModal({ proposal, onClose }) {
             <h2 style={{ fontWeight: '900', color: '#000', margin: 0 }}>EDIÇÃO PROPOSTA #{formData.id}</h2>
           </div>
           <div style={{ display: 'flex', gap: '15px' }}>
+            <button onClick={handleTrash} style={s.btnTrash}>🗑️ LIXEIRA</button>
             <button onClick={handlePrint} style={s.btnPrint}>IMPRIMIR PDF</button>
             <button onClick={onClose} style={s.closeBtn}>FECHAR [X]</button>
           </div>
@@ -296,5 +349,6 @@ const s = {
   footer: { padding: '20px 40px', backgroundColor: '#fff', borderTop: '3px solid #000' },
   btnMain: { width: '100%', padding: '16px', backgroundColor: '#EF4444', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: '900', cursor: 'pointer' },
   btnPrint: { padding: '10px 20px', backgroundColor: '#000', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '900', cursor: 'pointer' },
+  btnTrash: { padding: '10px 20px', backgroundColor: '#EF4444', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '900', cursor: 'pointer' },
   closeBtn: { border: 'none', background: 'none', color: '#000', fontWeight: '900', cursor: 'pointer' }
 }
