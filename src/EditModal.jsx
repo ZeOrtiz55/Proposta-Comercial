@@ -132,7 +132,7 @@ export default function EditModal({ proposal, onClose }) {
     doc.text(`MARCA: ${formData.Marca || ''}`, margin + 5, y + 7)
     doc.text(`MODELO: ${formData.Modelo || ''}`, margin + 5, y + 13)
     doc.text(`ANO: ${formData.Ano || ''}`, margin + 5, y + 19)
-    doc.text(`NCM: ${formData['Niname/NCM'] || ''}`, col2X, y + 7)
+    doc.text(`FINAME/NCM: ${formData['Niname/NCM'] || ''}`, col2X, y + 7)
     doc.text(`QTD: ${formData.Qtd_Eqp || '1'}`, col2X, y + 13)
     
     doc.text("CONFIGURAÇÃO TÉCNICA:", margin + 5, y + 27)
